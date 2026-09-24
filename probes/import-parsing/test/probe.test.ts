@@ -7,8 +7,8 @@
  *   3. 真实样本：正向（校验全过）+ 反向（篡改后校验必须报错，证明校验不是"永远绿"）
  *      真实样本只在本地 samples/ 存在，缺失时这一组会显式标记为跳过
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { hasSamples, primary } from './samples.ts';
 import iconv from 'iconv-lite';
 import { describe, expect, it } from 'vitest';
 import { yuanToCents } from '../src/common.ts';
@@ -61,9 +61,22 @@ describe('支付宝解析（合成数据）', () => {
     expect(checkSummary(r)).toEqual([]);
   });
 
-  it('正向："交易关闭"计入笔数、不计入金额，与支付宝汇总口径一致', () => {
-    const r = parseAlipay(fakeAlipayCsv([ok, closed], '支出：2笔 32.50元'));
+  // 下面三条用来区分两种口径推测：旧推测"交易关闭不计金额"、新推测"全部计入，退款从支出中扣除"
+  const refund = '2026-09-02 10:00:00,退款,某店,/,退款-午饭,不计收支,2.00,余额宝,退款成功,2026090200003\t,\t,,';
+
+  it('正向（口径）："交易关闭"的支出也计入金额', () => {
+    const r = parseAlipay(fakeAlipayCsv([ok, closed], '支出：2笔 32.59元'));
     expect(checkSummary(r)).toEqual([]);
+  });
+
+  it('正向（口径）："退款成功"的金额从支出汇总中扣除，自身计入不计收支', () => {
+    const r = parseAlipay(fakeAlipayCsv([ok, refund], '支出：1笔 30.50元\n不计收支：1笔 2.00元'));
+    expect(checkSummary(r)).toEqual([]);
+  });
+
+  it('反向（口径）：按旧推测"交易关闭不计金额"写的汇总 → 必须报金额不符', () => {
+    const r = parseAlipay(fakeAlipayCsv([ok, closed], '支出：2笔 32.50元'));
+    expect(checkSummary(r)).toEqual([expect.objectContaining({ check: 'expense 金额' })]);
   });
 
   it('反向：汇总金额对不上时必须报告问题', () => {
@@ -104,11 +117,8 @@ describe('余额链校验（合成数据）', () => {
 });
 
 // ───────────────────────── 3. 真实样本 ─────────────────────────
-const SAMPLES = join(import.meta.dirname, '../../../samples');
-const hasSamples = existsSync(SAMPLES) && readdirSync(SAMPLES).length >= 3;
-const sample = (ext: string) => join(SAMPLES, readdirSync(SAMPLES).find((n) => n.endsWith(ext))!);
-
-if (!hasSamples) console.warn('⚠️ samples/ 下缺少真实账单，真实样本测试已跳过 —— 探针结论不能据此成立');
+/** 按扩展名取对应的主样本（P0-1 的三份文件） */
+const sample = (ext: '.xlsx' | '.csv' | '.pdf') => primary(ext === '.xlsx' ? 'wechat' : ext === '.csv' ? 'alipay' : 'cmb');
 
 describe.skipIf(!hasSamples)('真实样本', () => {
   it('微信：正向 —— 笔数与金额和文件汇总一致', async () => {

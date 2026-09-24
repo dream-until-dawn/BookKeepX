@@ -11,6 +11,7 @@
 | P0-1 ✅ | 账单解析 | 用真实样本：微信 / 支付宝 / 至少 1 家银行，能定位表头、识别编码、逐行解析；解析出的收入 / 支出合计与账单文件自带的汇总一致 | [结论](./probes/p0-1-import-parsing.md) |
 | P0-1b ✅ | 解析模板体系 | 通用引擎 + 声明式模板复现 P0-1 结果；自动识别选对模板；无关文件不误选 | [结论](./probes/p0-1bc-templates-and-categories.md) |
 | P0-1c ✅ | 统一分类 | 预置分类 + 规则在真实样本上的覆盖率基线 | 同上 |
+| P0-1d ✅ | 多样本验证 | 9 份新版样本全部自动识别并通过校验；旧版格式不误用模板 | [结论](./probes/p0-1d-more-samples.md) |
 | P0-2 | 数据库链路 | Docker 起 PostgreSQL；Drizzle 建表 + 迁移；bigint 金额写入读出一致；按月 `GROUP BY` 聚合结果正确 | — |
 | P0-3 | 鉴权依赖 | @node-rs/argon2 在 Windows 本机与 Linux 容器内均可安装、哈希、校验 | — |
 | P0-4 | 单仓工程 | pnpm workspace 下 core 被 server / web 同时引用；Vitest 跨包运行；TS 类型联动 | — |

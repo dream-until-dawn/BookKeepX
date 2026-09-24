@@ -78,10 +78,15 @@
         "expense": "支出",
         "neutral": "不计收支"
       },
-      "countIncludesSkipped": true
+      "countIncludesSkipped": true,
+      "amountIncludesSkipped": true,
+      "refundStatuses": [
+        "退款成功"
+      ]
     }
   },
   "preambleFields": {
     "holderName": "姓名：{v}"
-  }
+  },
+  "zeroAmount": "skip"
 }

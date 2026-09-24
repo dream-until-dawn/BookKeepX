@@ -80,7 +80,7 @@ BookKeepX/
 | `sessions` | id, user_id, expires_at, user_agent | 服务端会话，Cookie 只存会话 id |
 | `accounts` | id, user_id, name, kind(wechat/alipay/bank/cash/other) | 资金账户，"钱从哪付的" |
 | `categories` | id, user_id, parent_id, name, direction(income/expense), sort | 两级分类；注册时写入默认分类 |
-| `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, created_at, updated_at, deleted_at | 核心流水表 |
+| `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, duplicate_of_id, created_at, updated_at, deleted_at | 核心流水表 |
 | `import_batches` | id, user_id, template_id, template_version, detect_score, file_name, file_sha256, total_rows, imported_rows, skipped_rows, status, created_at | 每次导入一条，支持整批撤销 |
 | `categories`（补充） | preset_key, group(expense/income/neutral), hidden | 系统预置分类树复制给每个用户，见 [ADR-0004](./adr/0004-categories-and-rules.md) |
 | `category_rules` | id, user_id, name, enabled, priority, match, conditions(jsonb), action(jsonb), hit_count | 声明式分类规则（无正则），见 ADR-0004；也是 P3 agent 自动分类的产出形式 |
@@ -92,6 +92,7 @@ BookKeepX/
 - `neutral`（中性）= 充值、提现、理财申购赎回、转入零钱通等"自己的钱换个地方"，**不计入收支统计**。探针样本中此类金额达数万元，不区分会让统计严重失真；
 - 所有业务表带 `user_id`，仓储层强制按当前用户过滤（多用户隔离的唯一入口）；
 - 删除用软删除 `deleted_at`，便于误删恢复与导入撤销；
+- 跨来源重复（用银行卡在支付宝 / 微信消费）：两条都保留，银行那条的 `duplicate_of_id` 指向平台那条，**非空即不计入统计**（ADR-0004 Q2-B）；
 - 去重：`(user_id, source, external_id)` 唯一；银行流水无单号，用 `dedupe_key = hash(账户+日期+金额+交易后余额)`（余额可区分同日同额的两笔）；
 - 时间：平台账单给的是北京时间墙上时间，规范化时显式按 `Asia/Shanghai` 解释后存 timestamptz，银行流水只有日期。
 

@@ -11,6 +11,7 @@ pnpm install
 npx tsx src/run.ts             # P0-1：专用适配器解析 + 校验报告（不输出明细）
 npx tsx src/run-engine.ts      # P0-1b：通用引擎 + 模板自动识别，并与 P0-1 逐笔比对
 npx tsx src/run-categorize.ts  # P0-1c：自动分类覆盖率
+npx tsx src/run-batch.ts       # P0-1d：对 samples/ 全部文件批量识别 + 校验，一行一个文件
 npx vitest run          # 正反向测试
 ```
 
