@@ -12,6 +12,8 @@
 - 架构决策记录（ADR）
   - [ADR-0001 技术选型](docs/adr/0001-tech-stack.md)
   - [ADR-0002 金额以整数分存储](docs/adr/0002-money-as-integer-cents.md)
+- 探针结论
+  - [P0-1 账单解析](docs/probes/p0-1-import-parsing.md)
 
 ## 技术栈（提议中）
 

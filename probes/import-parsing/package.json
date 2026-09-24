@@ -1,0 +1,17 @@
+{
+  "name": "@bookkeepx/probe-import-parsing",
+  "private": true,
+  "type": "module",
+  "description": "P0-1 探针：验证微信/支付宝/招商银行原始账单能否被可靠解析",
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "@types/papaparse": "^5.5.2",
+    "exceljs": "^4.4.0",
+    "iconv-lite": "^0.7.3",
+    "papaparse": "^5.7.0",
+    "pdfjs-dist": "^6.3.289",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}
