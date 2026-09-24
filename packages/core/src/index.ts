@@ -3,4 +3,4 @@
  *
  * 各领域模块按 P1 计划逐步加入：money（P1-1）、importers（P1-6）、categories（P1-8）、stats（P1-9）。
  */
-export {};
+export * from './money/index.ts';
