@@ -8,7 +8,9 @@
 
 ```bash
 pnpm install
-npx tsx src/run.ts      # 解析 samples/ 下的真实账单，输出统计与校验报告（不输出明细）
+npx tsx src/run.ts             # P0-1：专用适配器解析 + 校验报告（不输出明细）
+npx tsx src/run-engine.ts      # P0-1b：通用引擎 + 模板自动识别，并与 P0-1 逐笔比对
+npx tsx src/run-categorize.ts  # P0-1c：自动分类覆盖率
 npx vitest run          # 正反向测试
 ```
 
@@ -24,4 +26,7 @@ npx vitest run          # 正反向测试
 | `src/adapters/cmb-pdf.ts` | 招行 PDF 按坐标还原表格 |
 | `src/verify.ts` | 自校验：汇总比对、余额链、跨来源重复探测 |
 | `src/inspect.ts` | 结构查看工具（输出打码） |
-| `test/probe.test.ts` | 测试 |
+| `src/engine/` | P0-1b 通用解析引擎：模板 schema、文件读取、表格抽取、规范化与自校验、自动识别 |
+| `templates/*.json` | 内置解析模板 |
+| `src/categorize/` | P0-1c 分类：预置分类、系统规则、来源映射、规则引擎 |
+| `test/*.test.ts` | 测试（probe / engine / categorize） |
