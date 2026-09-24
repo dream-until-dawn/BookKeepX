@@ -207,7 +207,8 @@ export async function testTemplate(db: Db, userId: string, input: TestInput): Pr
   const spec = parseOrThrow(userTemplateSpecSchema, raw);
   const id = input.templateId ?? '00000000-0000-4000-8000-000000000000';
   const draft = compileOrThrow(spec, { id, name: '当前模板', version: 1 });
-  const others = [...BUILTIN_TEMPLATES, ...(await loadUserTemplates(db, userId))].filter((t) => t.id !== id);
+  // 修改已有模板时，trialParse 会把同 id 的旧版本从识别对手中排除
+  const others = [...BUILTIN_TEMPLATES, ...(await loadUserTemplates(db, userId))];
   try {
     return await trialParse(input.bytes, input.fileName, draft, others);
   } catch (e) {

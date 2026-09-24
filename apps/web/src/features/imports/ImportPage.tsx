@@ -5,15 +5,18 @@
  *   → 识别不确定时从候选模板中选一个再识别
  *   → 自校验未通过时列出问题，不生成预览
  *   → 预览：改分类、取消勾选 → 确认导入 / 放弃
- * 下方是导入历史：继续未完成的预览、放弃、整批撤销。
+ *   → 内置模板不认识 / 候选都不对 → 自定义模板向导，保存后用新模板继续导入（import.md §9）
+ * 下方是导入历史（继续未完成的预览、放弃、整批撤销）与我的自定义模板。
  */
-import type { Account, Category, ImportBatch, VerifyIssueDto } from '@bookkeepx/contracts';
+import type { Account, Category, ImportBatch, UserTemplate, VerifyIssueDto } from '@bookkeepx/contracts';
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ApiError } from '../../shared/api/client.ts';
 import { Button, ErrorBanner, inputClass, PageTitle } from '../../shared/ui/index.tsx';
 import { useAccounts } from '../accounts/api.ts';
 import { useCategories } from '../categories/api.ts';
+import { TemplateList } from '../import-templates/TemplateList.tsx';
+import { TemplateWizard } from '../import-templates/TemplateWizard.tsx';
 import { useLedger } from '../ledger/api.ts';
 import { useLedgerId } from '../ledger/useLedgerId.ts';
 import { type UploadInput, useImportBatches, useImportMutations, verifyIssuesOf } from './api.ts';
@@ -48,7 +51,11 @@ function ImportView({ ledgerId }: { ledgerId: string }) {
 type Stage =
   | { kind: 'idle' }
   | { kind: 'choose'; candidates: { templateId: string; templateName: string; score: number }[] }
-  | { kind: 'preview'; batch: ImportBatch };
+  | { kind: 'preview'; batch: ImportBatch }
+  /** 内置模板和已有的自定义模板都不认识这个文件 */
+  | { kind: 'unsupported' }
+  /** 自定义模板向导；initial 为要修改的模板 */
+  | { kind: 'wizard'; initial?: UserTemplate };
 
 interface BodyProps {
   ledgerId: string;
@@ -96,10 +103,21 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
   const upload = (extra: Omit<UploadInput, 'file'> = {}) =>
     run(async () => {
       if (!file) throw new ApiError('请先选择账单文件', 0);
-      const res = await m.upload.mutateAsync({ file, accountId: accountId || undefined, ...extra });
-      if (res.status === 'preview') showPreview(res.batch);
-      else setStage({ kind: 'choose', candidates: res.candidates });
+      try {
+        const res = await m.upload.mutateAsync({ file, accountId: accountId || undefined, ...extra });
+        if (res.status === 'preview') showPreview(res.batch);
+        else setStage({ kind: 'choose', candidates: res.candidates });
+      } catch (e) {
+        if (e instanceof ApiError && e.code === 'IMPORT_UNSUPPORTED') setStage({ kind: 'unsupported' });
+        throw e;
+      }
     });
+
+  /** 模板保存后：用它继续导入同一个文件 */
+  const onTemplateSaved = async (t: UserTemplate) => {
+    setStage({ kind: 'idle' });
+    await upload({ templateId: t.id });
+  };
 
   /** 预览中补选账户：用同一个文件带上账户重新识别，成功后放弃旧预览 */
   const chooseAccount = (batch: ImportBatch) => async (id: string) => {
@@ -188,7 +206,18 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
         </div>
       )}
 
-      {canEdit && stage.kind !== 'preview' && (
+      {stage.kind === 'wizard' && file && (
+        <div className="mb-6">
+          <TemplateWizard
+            file={file}
+            initial={stage.initial}
+            onSaved={onTemplateSaved}
+            onCancel={() => setStage({ kind: 'idle' })}
+          />
+        </div>
+      )}
+
+      {canEdit && stage.kind !== 'preview' && stage.kind !== 'wizard' && (
         <section aria-label="上传账单" className="mb-6 space-y-3 rounded-lg bg-white p-4 ring-1 ring-gray-200">
           <div className="flex flex-wrap items-center gap-2">
             <input
@@ -232,8 +261,20 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
                     {c.templateName}（匹配度 {Math.round(c.score * 100)}%）
                   </Button>
                 ))}
+                <Button variant="ghost" disabled={pending} onClick={() => setStage({ kind: 'wizard' })}>
+                  都不是，创建新模板
+                </Button>
               </div>
             </fieldset>
+          )}
+
+          {stage.kind === 'unsupported' && file && (
+            <div className="flex flex-wrap items-center gap-2 rounded bg-amber-50 p-3 text-sm text-amber-800">
+              可以为这种账单创建自定义模板：指明每一列的含义，以后上传同类文件会自动识别。
+              <Button variant="primary" onClick={() => setStage({ kind: 'wizard' })}>
+                创建自定义模板
+              </Button>
+            </div>
           )}
         </section>
       )}
@@ -269,6 +310,16 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
           onRevert={revert}
         />
       )}
+
+      <h2 className="mt-8 mb-2 font-medium">我的自定义模板</h2>
+      <TemplateList
+        timezone={timezone}
+        onEdit={(t, sample) => {
+          setFile(sample);
+          setError(null);
+          setStage({ kind: 'wizard', initial: t });
+        }}
+      />
     </main>
   );
 }
