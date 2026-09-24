@@ -7,7 +7,8 @@ import { createDatabase } from './db/client.ts';
 
 const env = loadEnv();
 const database = createDatabase(env.DATABASE_URL);
-const app = buildApp({ database, logger: env.NODE_ENV !== 'test' });
+// 生产环境（HTTPS）下 Cookie 必须带 Secure
+const app = buildApp({ database, logger: env.NODE_ENV !== 'test', secureCookie: env.NODE_ENV === 'production' });
 
 async function shutdown(signal: string) {
   app.log.info(`收到 ${signal}，正在关闭…`);
