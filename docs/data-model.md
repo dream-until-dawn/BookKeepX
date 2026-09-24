@@ -1,11 +1,11 @@
-# 数据模型设计（P1-2，待确认）
+# 数据模型设计（P1-2）
 
-- 状态：**草案，待负责人确认后实现**
+- 状态：**已确认**（负责人 2026-09-24：Q1~Q5 按建议，Q4 加多账本，见 [ADR-0006](./adr/0006-ledgers.md)）
 - 依据：[架构设计](./architecture.md)、ADR-0002（金额）、ADR-0003（解析模板）、ADR-0004（分类与规则、已决事项 Q1~Q4）、P0 探针结论
 - 通用约定：
   - 主键一律 `uuid`（随机生成，不暴露记录数量、便于将来多端同步）
   - 时间一律 `timestamptz`（带时区，存 UTC）；`created_at` / `updated_at` 每张业务表都有，下文不再重复列出
-  - 所有业务数据带 `user_id`，仓储层强制按当前用户过滤（多用户隔离的唯一入口）
+  - **数据隔离的单位是账本**：业务数据带 `ledger_id`，服务端先校验"当前用户是该账本成员且角色足够"，再按 `ledger_id` 过滤（ADR-0006）；个人工具（会话、解析模板）按 `user_id` 隔离
   - 金额一律 `bigint`，单位"分"，数据库约束 `0 < x ≤ 2^53−1`
   - 系统级数据（内置解析模板、预置分类定义、系统规则、来源分类映射）放在**代码仓库**里随版本发布，不建表
 
@@ -14,6 +14,8 @@
 | # | 表 | 一句话用途 | 必要性 |
 |---|---|---|---|
 | 1 | `users` | 用户账号 | 多用户注册登录（已决） |
+| 1a | `ledgers` | 账本 | 多账本（Q4 已决） |
+| 1b | `ledger_members` | 账本成员与角色 | 家庭共享记账的权限基础 |
 | 2 | `sessions` | 登录会话 | Cookie 会话方案（架构 §6） |
 | 3 | `accounts` | 资金账户（微信、支付宝、某张银行卡、现金） | 流水"从哪付的"；导入时判断文件属于哪个账户；跨来源去重 |
 | 4 | `categories` | 用户自己的分类树 | 统一分类体系（ADR-0004） |
@@ -36,7 +38,32 @@
 | password_hash | text | argon2id 哈希（P0-3 验证），不存明文 |
 | display_name | text | 界面显示的昵称 |
 | timezone | text，默认 `Asia/Shanghai` | 统计时按用户时区切分"日""月"（P0-2 验证过时区切月） |
+| default_ledger_id | uuid FK → ledgers，可空 | 默认账本；注册时自动创建 |
 | self_names | text[]，默认空 | **本人的姓名 / 常用名**。用于识别"转给自己"（中性）：招行 PDF 能从文件里读出户主姓名，但微信、手动记账没有，需要用户自己填（见待确认问题 Q3） |
+
+## 1a. `ledgers` 账本
+
+**为什么需要**：数据隔离的单位（ADR-0006）。个人账本、家庭账本分开记。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| id | uuid PK | |
+| name | text | 如"我的账本""家庭账本" |
+| currency | text，默认 `CNY` | 账本本位币（预留） |
+| timezone | text，默认 `Asia/Shanghai` | 共享账本的统计按账本时区切分日月（个人账本与用户时区一致） |
+| preset_version | int | 写入预置分类时的版本，预置分类升级时据此提示新增项 |
+
+## 1b. `ledger_members` 账本成员
+
+**为什么需要**：谁能访问哪个账本、能做什么。
+
+| 字段 | 类型 | 说明 |
+|---|---|---|
+| ledger_id | uuid FK → ledgers，级联删除 | 与 user_id 组成主键 |
+| user_id | uuid FK → users，级联删除 | |
+| role | 枚举：owner / editor / viewer | 所有者 / 可编辑 / 只读 |
+
+约束：每个账本至少一个 owner（服务层保证）。
 
 ## 2. `sessions` 会话
 
@@ -64,8 +91,8 @@
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | |
-| name | text | 显示名，如"招行储蓄卡 1032"；同一用户下唯一 |
+| ledger_id | uuid FK → ledgers，级联删除 | 所属账本 |
+| name | text | 显示名，如"招行储蓄卡 1032"；同一账本下唯一 |
 | kind | 枚举：wechat / alipay / bank_debit / credit_card / cash / other | 账户类型 |
 | institution | text，可空 | 机构，如"招商银行" |
 | card_last4 | text，可空 | 卡号后四位，用于匹配账单中的"储蓄卡(1032)""6214\*\*\*\*1032" |
@@ -77,12 +104,12 @@ MVP **不记余额**（见待确认问题 Q2）。
 
 ## 4. `categories` 分类
 
-**为什么需要**：我们自己维护的统一分类（ADR-0004）。注册时把系统预置分类树复制一份给用户，用户可以改名、新增、隐藏。
+**为什么需要**：我们自己维护的统一分类（ADR-0004）。创建账本时把系统预置分类树复制一份到该账本，之后可以改名、新增、隐藏；共享账本内成员共用一套分类。
 
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | |
+| ledger_id | uuid FK → ledgers，级联删除 | 所属账本 |
 | parent_id | uuid FK → categories，可空 | 空 = 一级分类；最多两级 |
 | group | 枚举：expense / income / neutral | 支出 / 收入 / 中性；子分类必须与父分类同组 |
 | name | text | 同一父分类下唯一 |
@@ -91,7 +118,7 @@ MVP **不记余额**（见待确认问题 Q2）。
 | sort | int | 排序 |
 | hidden | bool | 隐藏：不在选择列表中出现，历史流水仍保留该分类 |
 
-约束：`(user_id, preset_key)` 唯一。分类不物理删除：有流水引用时只能隐藏，或先把流水迁移到其他分类。
+约束：`(ledger_id, preset_key)` 唯一。分类不物理删除：有流水引用时只能隐藏，或先把流水迁移到其他分类。
 
 ## 5. `transactions` 流水（核心表）
 
@@ -100,7 +127,8 @@ MVP **不记余额**（见待确认问题 Q2）。
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | |
+| ledger_id | uuid FK → ledgers，级联删除 | 所属账本 |
+| created_by | uuid FK → users | 谁记的这一笔（共享账本中可见） |
 | account_id | uuid FK → accounts，可空 | 资金账户；手动记账可以不填 |
 | category_id | uuid FK → categories，可空 | 空 = 未分类 |
 | direction | 枚举：income / expense / neutral | 收入 / 支出 / 中性（不计收支） |
@@ -127,8 +155,8 @@ MVP **不记余额**（见待确认问题 Q2）。
 | duplicate_of_id | uuid FK → transactions，可空 | 跨来源重复时指向计入统计的那条；非空即不计入统计（Q2-B） |
 | deleted_at | timestamptz，可空 | 软删除，支持误删恢复 |
 
-约束（P0-2 已验证过其中大部分）：金额范围；只有退款才能有 `refund_of_id`；不能指向自己；`(user_id, external_source, external_id)` 在未删除记录中唯一。
-索引：`(user_id, occurred_at)` 统计与列表主路径；`(user_id, category_id)`；`(user_id, import_batch_id)`；`(user_id, dedupe_key)`。
+约束（P0-2 已验证过其中大部分）：金额范围；只有退款才能有 `refund_of_id`；不能指向自己；`(ledger_id, external_source, external_id)` 在未删除记录中唯一。
+索引：`(ledger_id, occurred_at)` 统计与列表主路径；`(ledger_id, category_id)`；`(ledger_id, import_batch_id)`；`(ledger_id, dedupe_key)`。
 
 ## 6. `import_batches` 导入批次
 
@@ -140,7 +168,8 @@ MVP **不记余额**（见待确认问题 Q2）。
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | |
+| ledger_id | uuid FK → ledgers，级联删除 | 所属账本 |
+| created_by | uuid FK → users | 谁上传的 |
 | account_id | uuid FK → accounts，可空 | 这份文件属于哪个账户 |
 | status | 枚举：previewing / committed / reverted / expired | 预览中 / 已提交 / 已撤销 / 预览过期 |
 | file_name | text | 原始文件名 |
@@ -179,7 +208,7 @@ MVP **不记余额**（见待确认问题 Q2）。
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | |
+| ledger_id | uuid FK → ledgers，级联删除 | 所属账本 |
 | name | text | 规则名 |
 | enabled | bool | 启用 / 停用 |
 | priority | int | 数字小的先匹配 |
@@ -197,12 +226,12 @@ MVP **不记余额**（见待确认问题 Q2）。
 | 字段 | 类型 | 说明 |
 |---|---|---|
 | id | uuid PK | |
-| user_id | uuid FK | |
+| ledger_id | uuid FK → ledgers，级联删除 | 所属账本 |
 | source | text | 来源，如 `alipay` |
 | hint | text | 原生分类，如"商业服务" |
 | category_id | uuid FK → categories | 用户指定的分类 |
 
-约束：`(user_id, source, hint)` 唯一。
+约束：`(ledger_id, source, hint)` 唯一。
 
 ---
 
@@ -215,12 +244,12 @@ MVP **不记余额**（见待确认问题 Q2）。
 | 系统分类规则、来源分类映射 | 同上 | 同上 |
 | 登录限流计数 | 服务端内存 | 单实例自托管足够；多实例时再换 Redis |
 
-## 待确认问题
+## 已决问题（2026-09-24 负责人确认）
 
 | # | 问题 | 建议 | 影响 |
 |---|---|---|---|
 | Q1 | 是否保存用户上传的**原始账单文件**？ | **不保存**，只存文件哈希 + 每行原始数据（`raw`）。账单含姓名、卡号等隐私，存文件增加泄露面；`raw` 已足够排错和重新解析 | 存文件需要加文件存储与清理策略 |
 | Q2 | 资金账户要不要**记余额**（资产视图）？ | MVP **不记**。导入的数据不一定完整（只导了部分月份），算出的余额容易错；P2 再做"手动校准余额" | 以后加字段即可，不影响现有表 |
 | Q3 | "转给自己"的识别需要知道本人姓名：是否让用户在设置里填写 `self_names`？ | **需要**。招行文件里有户主姓名，但微信转账、支付宝转账要靠它 | 仅一个字段 |
-| Q4 | 是否需要**多账本**（例如个人账本和家庭账本分开、和家人共同记账）？ | 这是唯一**以后再加代价很大**的决定：要在几乎每张表加 `ledger_id` 并改权限模型。**如果预期会有家庭共享记账，建议现在就加上 `ledgers` 表**（MVP 每人默认一个账本，界面上先不暴露）；如果确定只是个人使用，就不加 | 决定数据隔离的单位是"用户"还是"账本" |
+| Q4 ✅ 已决：加多账本 | 是否需要**多账本**（例如个人账本和家庭账本分开、和家人共同记账）？ | 这是唯一**以后再加代价很大**的决定：要在几乎每张表加 `ledger_id` 并改权限模型。**如果预期会有家庭共享记账，建议现在就加上 `ledgers` 表**（MVP 每人默认一个账本，界面上先不暴露）；如果确定只是个人使用，就不加 | 决定数据隔离的单位是"用户"还是"账本" |
 | Q5 | 是否需要**标签**（一笔流水可打多个标签，如"出差""装修"）？ | MVP 不做，P2 加一张关联表即可，不影响现有结构 | 无 |
