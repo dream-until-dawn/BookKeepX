@@ -7,6 +7,7 @@ export default defineConfig({
   test: {
     projects: [
       { test: { name: 'core', root: 'packages/core', include: ['test/**/*.test.ts'] } },
+      { test: { name: 'importers', root: 'packages/importers', include: ['test/**/*.test.ts'] } },
       { test: { name: 'contracts', root: 'packages/contracts', include: ['test/**/*.test.ts'] } },
       {
         test: {
