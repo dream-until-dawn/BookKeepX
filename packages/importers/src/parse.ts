@@ -4,6 +4,8 @@
  * 所有来源共用这一套逻辑，差异全部由模板配置表达（ADR-0003）。
  * 自校验用文件自带的冗余信息反证解析是否正确（P0-1）：汇总比对、银行余额链。
  */
+
+import { TIME_FORMAT_PATTERNS } from '@bookkeepx/contracts';
 import { MoneyParseError, parseYuanToCents, wallTimeToIso } from '@bookkeepx/core';
 import type { Cell } from './reader.ts';
 import type { Table } from './table.ts';
@@ -60,14 +62,7 @@ export interface ParsedFile {
   };
 }
 
-const TIME_RE: Record<ImportTemplate['time']['format'], RegExp> = {
-  'yyyy-MM-dd HH:mm:ss': /^(\d{4})-(\d{2})-(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
-  'yyyy-MM-dd': /^(\d{4})-(\d{2})-(\d{2})$/,
-  'yyyy/MM/dd HH:mm:ss': /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
-  'yyyy/MM/dd': /^(\d{4})\/(\d{2})\/(\d{2})$/,
-  'yyyy-M-d H:mm': /^(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{2})(?::(\d{2}))?$/,
-  'yyyy/M/d H:mm': /^(\d{4})\/(\d{1,2})\/(\d{1,2}) (\d{1,2}):(\d{2})(?::(\d{2}))?$/,
-};
+const TIME_RE = TIME_FORMAT_PATTERNS;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 
@@ -284,16 +279,25 @@ function verify(table: Table, t: ImportTemplate, records: ImportRecord[], errors
     }
   }
   if (t.verify.balanceChain) {
-    // 余额链：上一笔余额 + 本笔金额 = 本笔余额（记录按账单原始顺序）
-    for (let i = 1; i < records.length; i++) {
-      const prev = records[i - 1]!;
-      const cur = records[i]!;
-      const signed = cur.direction === 'income' ? cur.amountCents : -cur.amountCents;
-      if (prev.balanceCents === null || cur.balanceCents === null) {
-        issues.push({ check: '余额链', detail: `${cur.rowLabel} 缺少余额` });
-      } else if (prev.balanceCents + signed !== cur.balanceCents) {
-        issues.push({ check: '余额链', detail: `${cur.rowLabel} 余额对不上，可能漏了记录或解析有误` });
-      }
+    // 账单可能按时间正序（旧 → 新）或倒序（新 → 旧）排列：任一方向整条链对得上即通过；
+    // 都对不上时报告正序的问题（与账单顺序一致，便于用户对照）
+    const asc = balanceChainIssues(records);
+    if (asc.length > 0 && balanceChainIssues([...records].reverse()).length > 0) issues.push(...asc);
+  }
+  return issues;
+}
+
+/** 余额链：上一笔余额 + 本笔金额 = 本笔余额（按传入顺序） */
+function balanceChainIssues(records: ImportRecord[]): VerifyIssue[] {
+  const issues: VerifyIssue[] = [];
+  for (let i = 1; i < records.length; i++) {
+    const prev = records[i - 1]!;
+    const cur = records[i]!;
+    const signed = cur.direction === 'income' ? cur.amountCents : -cur.amountCents;
+    if (prev.balanceCents === null || cur.balanceCents === null) {
+      issues.push({ check: '余额链', detail: `${cur.rowLabel} 缺少余额` });
+    } else if (prev.balanceCents + signed !== cur.balanceCents) {
+      issues.push({ check: '余额链', detail: `${cur.rowLabel} 余额对不上，可能漏了记录或解析有误` });
     }
   }
   return issues;

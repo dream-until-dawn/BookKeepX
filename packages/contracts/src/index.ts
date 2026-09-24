@@ -37,6 +37,33 @@ export {
 } from './categories.ts';
 export { type HealthResponse, healthResponseSchema } from './health.ts';
 export {
+  type CreateUserTemplateRequest,
+  createUserTemplateRequestSchema,
+  guessTimeFormat,
+  type InspectResponse,
+  inspectResponseSchema,
+  TEMPLATE_FIELD_LABELS,
+  TEMPLATE_FIELDS,
+  TEMPLATE_SOURCE_KIND_LABELS,
+  type TemplateField,
+  type TemplateSourceKind,
+  type TemplateTestResponse,
+  TIME_FORMAT_PATTERNS,
+  TIME_FORMATS,
+  type TimeFormat,
+  templateSourceKindSchema,
+  templateTestResponseSchema,
+  timeFormatSchema,
+  type UpdateUserTemplateRequest,
+  type UserTemplate,
+  type UserTemplateSpec,
+  type UserTemplateSpecInput,
+  updateUserTemplateRequestSchema,
+  userTemplateListSchema,
+  userTemplateSchema,
+  userTemplateSpecSchema,
+} from './import-templates.ts';
+export {
   type CommitRequest,
   commitRequestSchema,
   type ImportBatch,

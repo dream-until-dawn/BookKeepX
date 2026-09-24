@@ -5,25 +5,15 @@
  * 模板里不允许出现可执行代码，也不允许正则（用户自定义模板会成为 ReDoS 入口）：
  * 需要"提取某段文字"的地方一律用占位符（如 "共{n}笔记录"、"姓名：{v}"）。
  */
+import { TIME_FORMATS } from '@bookkeepx/contracts';
 import { z } from 'zod';
 
 const directionEnum = z.enum(['income', 'expense', 'neutral']);
 /** 列名别名列表：任一别名命中即可，兼容平台改版改列名 */
 const columnRef = z.array(z.string().min(1)).min(1);
 
-/**
- * 支持的时间格式
- * - 前四种是严格格式（内置模板使用）：月、日、时、分、秒都是两位
- * - "yyyy-M-d H:mm"、"yyyy/M/d H:mm" 是宽松格式：月、日、时可以不补零，秒可以省略（如旧版支付宝的 "2021/12/31 8:54"）
- */
-export const TIME_FORMATS = [
-  'yyyy-MM-dd HH:mm:ss',
-  'yyyy-MM-dd',
-  'yyyy/MM/dd HH:mm:ss',
-  'yyyy/MM/dd',
-  'yyyy-M-d H:mm',
-  'yyyy/M/d H:mm',
-] as const;
+/** 支持的时间格式（定义在 contracts，与前端的自动推断共用） */
+export { TIME_FORMATS };
 
 export const templateSchema = z
   .object({

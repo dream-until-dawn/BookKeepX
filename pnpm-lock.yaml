@@ -287,6 +287,9 @@ importers:
 
   packages/importers:
     dependencies:
+      '@bookkeepx/contracts':
+        specifier: workspace:*
+        version: link:../contracts
       '@bookkeepx/core':
         specifier: workspace:*
         version: link:../core
