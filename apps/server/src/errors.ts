@@ -7,6 +7,8 @@ export class AppError extends Error {
     /** 机器可读的错误码，前端据此做不同处理 */
     readonly code: string,
     message: string,
+    /** 附加信息（如导入自校验失败时的问题列表），原样返回给前端 */
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = 'AppError';

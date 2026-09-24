@@ -103,7 +103,8 @@ function cents(input: string | number): number {
 
 /** 从 "标签：N笔 X元" 提取汇总 */
 function summaryOf(preamble: string, label: string) {
-  const m = new RegExp(`${escapeRegExp(label)}[：:]\\s*(\\d+)笔\\s*([\\d.,]+)元`).exec(preamble);
+  // 金额可能为负（退款多于支出时）
+  const m = new RegExp(`${escapeRegExp(label)}[：:]\\s*(\\d+)笔\\s*(-?[\\d.,]+)元`).exec(preamble);
   return m ? { count: Number(m[1]), cents: parseYuanToCents(m[2]!) } : undefined;
 }
 
@@ -219,6 +220,22 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Number.POS
   return { records, errors, issues, meta };
 }
 
+/** 退款中原消费不在本文件的那些（仅"按单号前缀关联"的模板能判断；其他模板视为全部在文件内） */
+function orphanRefunds(t: ImportTemplate, records: ImportRecord[], refunds: ImportRecord[]): ImportRecord[] {
+  const link = t.refund?.link;
+  if (link?.mode !== 'externalIdPrefix') return [];
+  const ids = new Set(records.map((r) => r.externalId).filter(Boolean));
+  return refunds.filter((r) => {
+    if (!r.externalId) return false;
+    let cut = r.externalId.length;
+    for (const s of link.separators) {
+      const i = r.externalId.indexOf(s);
+      if (i > 0 && i < cut) cut = i;
+    }
+    return !ids.has(r.externalId.slice(0, cut));
+  });
+}
+
 /** 自校验：行解析错误、平台汇总比对、银行余额链 */
 function verify(table: Table, t: ImportTemplate, records: ImportRecord[], errors: ParsedFile['errors']): VerifyIssue[] {
   const issues: VerifyIssue[] = errors.map((e) => ({ check: '行解析', detail: `${e.row}：${e.message}` }));
@@ -227,9 +244,14 @@ function verify(table: Table, t: ImportTemplate, records: ImportRecord[], errors
     const kept = records.filter((r) => r.skipReason === null);
     const counted = cfg.countIncludesSkipped ? records : kept;
     const summed = cfg.amountIncludesSkipped ? records : kept;
-    const refundCents = summed
-      .filter((r) => cfg.refundStatuses.includes(r.status ?? ''))
-      .reduce((s, r) => s + r.amountCents, 0);
+    const refundRecords = summed.filter((r) => cfg.refundStatuses.includes(r.status ?? ''));
+    const refundCents = refundRecords.reduce((s, r) => s + r.amountCents, 0);
+    /**
+     * 原消费不在本文件中的退款（跨账单周期：上月买、本月退）。
+     * 支付宝对这类退款是否也从支出汇总中扣除，现有样本无法验证（样本中的原消费都在同一文件内），
+     * 因此两种口径都接受：扣除全部退款 / 只扣除原消费在本文件中的退款。见 docs/import.md §8。
+     */
+    const orphanRefundCents = orphanRefunds(t, records, refundRecords).reduce((s, r) => s + r.amountCents, 0);
 
     if (cfg.total) {
       const m = new RegExp(escapeRegExp(cfg.total).replace('\\{n\\}', '(\\d+)')).exec(table.preamble);
@@ -248,9 +270,11 @@ function verify(table: Table, t: ImportTemplate, records: ImportRecord[], errors
       const c =
         summed.filter((r) => r.direction === dir).reduce((s, r) => s + r.amountCents, 0) -
         (dir === 'expense' ? refundCents : 0);
+      // 另一种口径：跨周期退款不扣除
+      const alt = dir === 'expense' ? c + orphanRefundCents : c;
       if (n !== expected.count)
         issues.push({ check: `${label}笔数`, detail: `账单写明 ${expected.count} 笔，实际 ${n} 笔` });
-      if (c !== expected.cents)
+      if (c !== expected.cents && alt !== expected.cents)
         issues.push({ check: `${label}金额`, detail: `账单写明 ${expected.cents} 分，实际 ${c} 分` });
     }
   }

@@ -91,6 +91,44 @@ describe('支付宝（合成数据）', () => {
     expect(r.file.records[0]!.refund).toEqual({ ofIndex: null, ofExternalId: 'OLD1' });
   });
 
+  describe('跨账单周期的退款（原消费不在本文件；支付宝汇总口径未经真实数据验证，两种都接受）', () => {
+    const rows: Parameters<typeof alipayCsv>[0] = [
+      ok('A001', '50.00'),
+      ['2026-09-02 12:00:00', '退款', '不计收支', '8.00', '退款成功', 'OLD1_R1', '退款-上月商品'],
+    ];
+    const summaryWith = (expense: string) => ['收入：0笔 0.00元', `支出：1笔 ${expense}元`, '不计收支：1笔 8.00元'];
+
+    it('正向：汇总扣除了这笔退款（42.00）→ 通过', async () => {
+      expect((await parsed(alipayCsv(rows, { summary: summaryWith('42.00') }))).file.issues).toEqual([]);
+    });
+
+    it('正向：汇总没有扣除这笔退款（50.00）→ 同样通过', async () => {
+      expect((await parsed(alipayCsv(rows, { summary: summaryWith('50.00') }))).file.issues).toEqual([]);
+    });
+
+    it('正向：只有退款、没有支出时汇总为负数（-8.00）→ 能读取并通过', async () => {
+      const onlyRefund: Parameters<typeof alipayCsv>[0] = [rows[1]!];
+      const r = await parsed(
+        alipayCsv(onlyRefund, { summary: ['收入：0笔 0.00元', '支出：0笔 -8.00元', '不计收支：1笔 8.00元'] }),
+      );
+      expect(r.file.issues).toEqual([]);
+    });
+
+    it('反向：两种口径都对不上（45.00）→ 报错', async () => {
+      const r = await parsed(alipayCsv(rows, { summary: summaryWith('45.00') }));
+      expect(r.file.issues).toEqual([expect.objectContaining({ check: '支出金额' })]);
+    });
+
+    it('反向：原消费在本文件的退款，不享受"不扣除"口径（避免放松校验）', async () => {
+      const inFile: Parameters<typeof alipayCsv>[0] = [
+        ok('P001', '50.00'),
+        ['2026-09-02 12:00:00', '退款', '不计收支', '8.00', '退款成功', 'P001_R1', '退款'],
+      ];
+      const r = await parsed(alipayCsv(inFile, { summary: summaryWith('50.00') }));
+      expect(r.file.issues).toEqual([expect.objectContaining({ check: '支出金额' })]);
+    });
+  });
+
   it('正向：0 元交易跳过并注明原因，仍计入笔数', async () => {
     const r = await parsed(
       alipayCsv([ok('A001'), ['2026-09-01 12:00:00', '医疗健康', '支出', '0.00', '支付成功', 'Z001', '医保支付']]),

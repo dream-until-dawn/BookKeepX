@@ -5,6 +5,7 @@
  * main.ts 传入真实配置。新增业务模块时：在 modules/<模块>/ 下实现，然后在这里注册一行。
  */
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 import Fastify from 'fastify';
 import type { Database } from './db/client.ts';
 import { accountRoutes } from './modules/accounts/routes.ts';
@@ -12,6 +13,8 @@ import { type AuthLimiters, createAuthLimiters } from './modules/auth/rate-limit
 import { authRoutes } from './modules/auth/routes.ts';
 import { categoryRoutes } from './modules/categories/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
+import { importRoutes } from './modules/imports/routes.ts';
+import { MAX_FILE_BYTES } from './modules/imports/service.ts';
 import { ledgerRoutes } from './modules/ledgers/routes.ts';
 import { transactionRoutes } from './modules/transactions/routes.ts';
 import { registerAuth } from './plugins/auth.ts';
@@ -39,6 +42,8 @@ export function buildApp(deps: AppDeps) {
 
   registerErrorHandler(app);
   app.register(cookie);
+  // 账单上传：单文件、大小上限（docs/import.md §7）
+  app.register(multipart, { limits: { fileSize: MAX_FILE_BYTES, files: 1, fields: 10 } });
   registerCsrfGuard(app);
   registerAuth(app, { db, clock, secureCookie });
   registerLedgerScope(app, db);
@@ -49,5 +54,6 @@ export function buildApp(deps: AppDeps) {
   categoryRoutes(app, db);
   accountRoutes(app, db);
   transactionRoutes(app, db);
+  importRoutes(app, db, clock);
   return app;
 }
