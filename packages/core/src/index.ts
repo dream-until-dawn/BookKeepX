@@ -6,3 +6,4 @@
 
 export * from './categories/index.ts';
 export * from './money/index.ts';
+export * from './time/zone.ts';
