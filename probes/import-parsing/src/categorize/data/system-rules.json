@@ -1,0 +1,318 @@
+[
+  {
+    "name": "转给自己（对方是户主本人）",
+    "priority": 1,
+    "match": "all",
+    "conditions": [
+      {
+        "field": "isSelf",
+        "op": "equals",
+        "value": true
+      }
+    ],
+    "action": {
+      "categoryKey": "neutral.self",
+      "setDirection": "neutral"
+    }
+  },
+  {
+    "name": "地铁公交",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "地铁",
+          "轨道交通",
+          "公交",
+          "巴士"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.transport.public"
+    }
+  },
+  {
+    "name": "打车",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "滴滴",
+          "高德打车",
+          "曹操出行",
+          "T3出行",
+          "花小猪"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.transport.taxi"
+    }
+  },
+  {
+    "name": "铁路航空",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "12306",
+          "铁路",
+          "航空",
+          "机票"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.transport.travel"
+    }
+  },
+  {
+    "name": "充电加油停车",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "充电",
+          "加油",
+          "停车",
+          "中石化",
+          "中石油"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.transport.car"
+    }
+  },
+  {
+    "name": "外卖",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "外卖",
+          "美团",
+          "饿了么",
+          "淘宝闪购"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.food.delivery"
+    }
+  },
+  {
+    "name": "餐饮关键词",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "餐厅",
+          "饭店",
+          "面馆",
+          "馄饨",
+          "小吃",
+          "烧烤",
+          "火锅",
+          "快餐",
+          "食堂"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.food.meal"
+    }
+  },
+  {
+    "name": "饮品",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "瑞幸",
+          "星巴克",
+          "蜜雪冰城",
+          "奶茶",
+          "咖啡",
+          "茶百道",
+          "古茗"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.food.snack"
+    }
+  },
+  {
+    "name": "超市便利店",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "超市",
+          "便利店",
+          "美宜佳",
+          "罗森",
+          "全家",
+          "7-11"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.shopping.daily"
+    }
+  },
+  {
+    "name": "会员订阅",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "会员",
+          "连续包月",
+          "订阅",
+          "API服务"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.telecom.subscription"
+    }
+  },
+  {
+    "name": "房租",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "房租",
+          "租金",
+          "泊寓",
+          "自如",
+          "公寓"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.housing.rent"
+    }
+  },
+  {
+    "name": "保险",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "保险",
+          "保费",
+          "车险"
+        ]
+      },
+      {
+        "field": "direction",
+        "op": "equals",
+        "values": [
+          "expense"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.insurance"
+    }
+  },
+  {
+    "name": "理财申购",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "counterparty",
+        "op": "containsAny",
+        "values": [
+          "基金销售",
+          "理财通",
+          "余额宝",
+          "零钱通",
+          "朝朝宝"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "neutral.invest",
+      "setDirection": "neutral"
+    }
+  },
+  {
+    "name": "公积金",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "counterparty",
+        "op": "containsAny",
+        "values": [
+          "住房公积金"
+        ]
+      },
+      {
+        "field": "direction",
+        "op": "equals",
+        "values": [
+          "income"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "income.other"
+    }
+  },
+  {
+    "name": "贷款/信用卡还款（算支出）",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "小额贷款",
+          "白条",
+          "花呗",
+          "借呗",
+          "信用卡还款",
+          "贷款还款"
+        ]
+      },
+      {
+        "field": "direction",
+        "op": "equals",
+        "values": [
+          "expense"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.repay"
+    }
+  }
+]
