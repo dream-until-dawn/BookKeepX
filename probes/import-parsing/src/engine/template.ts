@@ -69,6 +69,29 @@ export const templateSchema = z
       timezone: z.string().default('Asia/Shanghai'),
     }),
 
+    /**
+     * 退款识别与关联（负责人决定：退款冲减原消费的支出，见 ADR-0004 Q4）
+     *   detect —— 怎样认出一条退款：按状态（支付宝"退款成功"）或原生分类后缀（微信"xxx-退款"）
+     *   link   —— 怎样找到原消费：
+     *     externalIdPrefix：退款单号 = 原单号 + 分隔符 + …（支付宝，精确）
+     *     counterparty：    同一交易对方、状态含"退款"、剩余可退金额足够的支出（微信，启发式）
+     */
+    refund: z
+      .object({
+        detect: z
+          .object({
+            statuses: z.array(z.string()).default([]),
+            hintSuffix: z.string().min(1).optional(),
+          })
+          .strict(),
+        link: z.discriminatedUnion('mode', [
+          z.object({ mode: z.literal('externalIdPrefix'), separators: z.array(z.string().length(1)).min(1) }).strict(),
+          z.object({ mode: z.literal('counterparty') }).strict(),
+        ]),
+      })
+      .strict()
+      .optional(),
+
     /** 0 元交易的处理：error = 视为解析错误（默认）；skip = 跳过并记录原因（支付宝有全额优惠、医保全额支付等 0 元记录） */
     zeroAmount: z.enum(['error', 'skip']).default('error'),
 

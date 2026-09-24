@@ -3,21 +3,86 @@
   "version": 1,
   "name": "微信支付账单（xlsx）",
   "fileType": "xlsx",
-  "fingerprint": { "titleKeywords": ["微信支付账单明细", "微信昵称"], "fileNameKeywords": ["微信支付账单"] },
-  "header": { "required": ["交易时间", "交易类型", "交易对方", "收/支", "金额(元)", "当前状态", "交易单号"] },
-  "columns": {
-    "occurredAt": ["交易时间"],
-    "amount": ["金额(元)"],
-    "counterparty": ["交易对方"],
-    "description": ["商品"],
-    "externalId": ["交易单号"],
-    "paymentMethod": ["支付方式"],
-    "categoryHint": ["交易类型"]
+  "fingerprint": {
+    "titleKeywords": [
+      "微信支付账单明细",
+      "微信昵称"
+    ],
+    "fileNameKeywords": [
+      "微信支付账单"
+    ]
   },
-  "amount": { "mode": "directionColumn", "column": ["收/支"], "map": { "收入": "income", "支出": "expense", "/": "neutral" } },
-  "status": { "column": ["当前状态"], "skip": [] },
-  "time": { "format": "yyyy-MM-dd HH:mm:ss", "timezone": "Asia/Shanghai" },
+  "header": {
+    "required": [
+      "交易时间",
+      "交易类型",
+      "交易对方",
+      "收/支",
+      "金额(元)",
+      "当前状态",
+      "交易单号"
+    ]
+  },
+  "columns": {
+    "occurredAt": [
+      "交易时间"
+    ],
+    "amount": [
+      "金额(元)"
+    ],
+    "counterparty": [
+      "交易对方"
+    ],
+    "description": [
+      "商品"
+    ],
+    "externalId": [
+      "交易单号"
+    ],
+    "paymentMethod": [
+      "支付方式"
+    ],
+    "categoryHint": [
+      "交易类型"
+    ]
+  },
+  "amount": {
+    "mode": "directionColumn",
+    "column": [
+      "收/支"
+    ],
+    "map": {
+      "收入": "income",
+      "支出": "expense",
+      "/": "neutral"
+    }
+  },
+  "status": {
+    "column": [
+      "当前状态"
+    ],
+    "skip": []
+  },
+  "time": {
+    "format": "yyyy-MM-dd HH:mm:ss",
+    "timezone": "Asia/Shanghai"
+  },
   "verify": {
-    "summary": { "total": "共{n}笔记录", "labels": { "income": "收入", "expense": "支出", "neutral": "中性交易" } }
+    "summary": {
+      "total": "共{n}笔记录",
+      "labels": {
+        "income": "收入",
+        "expense": "支出",
+        "neutral": "中性交易"
+      }
+    }
+  },
+  "refund": {
+    "detect": {
+      "hintSuffix": "-退款"
+    },
+    "link": {
+      "mode": "counterparty"
+    }
   }
 }
