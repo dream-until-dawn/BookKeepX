@@ -5,7 +5,7 @@
  * - inspectFile：读取文件前若干行给向导展示
  * - trialParse：按草稿模板试解析，并判断"保存后能否被自动识别"
  */
-import { type UserTemplateSpec, userTemplateSpecSchema } from '@bookkeepx/contracts';
+import { type Direction, type UserTemplateSpec, userTemplateSpecSchema } from '@bookkeepx/contracts';
 import { detect } from './detect.ts';
 import { parseTable } from './parse.ts';
 import { type Cell, type FileType, readDoc } from './reader.ts';
@@ -27,6 +27,25 @@ export interface UserTemplateMeta {
 export function userTemplateSource(spec: Pick<UserTemplateSpec, 'sourceKind'>, id: string): string {
   return spec.sourceKind === 'wechat' || spec.sourceKind === 'alipay' ? spec.sourceKind : `u-${id}`;
 }
+
+/**
+ * 微信 / 支付宝"收/支"列的标准取值。向导只能看到样本文件前 200 行出现过的取值，
+ * 某些取值（如微信的 "/" 中性交易）可能恰好没出现；编译时补上，用户自己设置的优先。
+ * 真实样本发现：用一份没有 "/" 的旧版微信账单建的模板，导入另一份有 "/" 的账单时整份被拒绝。
+ */
+const PLATFORM_DIRECTIONS: Partial<Record<UserTemplateSpec['sourceKind'], Record<string, Direction>>> = {
+  wechat: { 收入: 'income', 支出: 'expense', '/': 'neutral' },
+  alipay: { 收入: 'income', 支出: 'expense', 不计收支: 'neutral' },
+};
+
+/**
+ * 平台默认跳过的状态（与内置模板一致）。同样因为向导只看得到前 200 行：
+ * 真实样本中旧版支付宝账单唯一一条"交易关闭"在第 955 条，向导推荐不到。
+ * 关联了退款的"交易关闭"原消费仍会恢复入账（refund.ts）。
+ */
+const PLATFORM_SKIP_STATUSES: Partial<Record<UserTemplateSpec['sourceKind'], string[]>> = {
+  alipay: ['交易关闭'],
+};
 
 /** 微信 / 支付宝的退款识别规则沿用内置模板（需要映射了相应的列） */
 function refundPreset(spec: UserTemplateSpec): ImportTemplate['refund'] {
@@ -77,9 +96,20 @@ export function compileUserTemplate(specInput: unknown, meta: UserTemplateMeta):
     },
     amount:
       spec.amountMode === 'directionColumn'
-        ? { mode: 'directionColumn', column: [c.direction!], map: spec.directionMap }
+        ? {
+            mode: 'directionColumn',
+            column: [c.direction!],
+            map: { ...PLATFORM_DIRECTIONS[spec.sourceKind], ...spec.directionMap },
+          }
         : { mode: spec.amountMode },
-    ...(c.status ? { status: { column: [c.status], skip: spec.skipStatuses } } : {}),
+    ...(c.status
+      ? {
+          status: {
+            column: [c.status],
+            skip: [...new Set([...(PLATFORM_SKIP_STATUSES[spec.sourceKind] ?? []), ...spec.skipStatuses])],
+          },
+        }
+      : {}),
     refund: refundPreset(spec),
     // 用户文件里的 0 元记录（如免单、积分抵扣）跳过并注明，而不是让整份文件报错
     zeroAmount: 'skip',

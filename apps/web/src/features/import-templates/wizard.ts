@@ -110,13 +110,16 @@ const SKIP_STATUS_WORDS = ['关闭', '失败', '撤销', '已退回'];
 export const guessSkipStatuses = (values: string[]) =>
   values.filter((v) => SKIP_STATUS_WORDS.some((w) => v.includes(w)));
 
-/** 识别关键词：表头之前第一行非空的说明文字（如"微信支付账单明细"），太长的截断 */
+/**
+ * 识别关键词：表头之前第一行合适的说明文字（如"微信支付账单明细"），太长的截断
+ * 跳过：分隔线、带冒号的"字段：值"（户名、账号属于个人信息）、含数字的行（笔数、日期、金额每份文件都不同，
+ * 例如"共980笔记录"——真实样本发现，用它做关键词会让同类的其他文件都无法自动识别）
+ */
 export function suggestTitleKeyword(rows: string[][], headerRow: number | null): string {
   if (headerRow === null) return '';
   for (const r of rows.slice(0, headerRow)) {
     const text = r.find((c) => c.trim())?.trim();
-    // 分隔线、纯数字、带冒号的"字段：值"（如户名、账号，属于个人信息，不适合做关键词）都跳过
-    if (text && !/^[-=\s]+$/.test(text) && !/^[\d\s.:/-]+$/.test(text) && !/[：:]/.test(text)) {
+    if (text && !/^[-=\s]+$/.test(text) && !/\d/.test(text) && !/[：:]/.test(text)) {
       return text.replace(/^[-=\s]+|[-=\s]+$/g, '').slice(0, 30);
     }
   }

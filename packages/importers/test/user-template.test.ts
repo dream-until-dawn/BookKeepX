@@ -61,6 +61,34 @@ describe('compileUserTemplate', () => {
     expect(a.refund?.link).toEqual({ mode: 'externalIdPrefix', separators: ['_', '*'] });
   });
 
+  it('正向：微信来源补上平台标准的收支取值（样本中没出现的 "/"）；用户自己设置的优先', () => {
+    const only = { ...LEGACY_WECHAT_SPEC, directionMap: { 收入: 'income', 支出: 'expense' } } as const;
+    const t = compileUserTemplate(only, meta);
+    expect(t.amount).toMatchObject({ map: { 收入: 'income', 支出: 'expense', '/': 'neutral' } });
+    const custom = compileUserTemplate({ ...only, directionMap: { ...only.directionMap, '/': 'expense' } }, meta);
+    expect(custom.amount).toMatchObject({ map: { '/': 'expense' } });
+  });
+
+  it('正向：支付宝来源默认跳过"交易关闭"（向导样本可能看不到），与用户选的合并去重；微信不加', () => {
+    const a = compileUserTemplate({ ...LEGACY_ALIPAY_SPEC, skipStatuses: ['失败', '交易关闭'] }, meta);
+    expect(a.status).toEqual({ column: ['交易状态'], skip: ['交易关闭', '失败'] });
+    expect(compileUserTemplate(LEGACY_WECHAT_SPEC, meta).status?.skip).toEqual([]);
+  });
+
+  it('反向："其他"来源不补任何取值：未设置的取值在解析时报错，而不是被猜测', () => {
+    const t = compileUserTemplate(
+      spec({
+        sourceKind: 'other',
+        amountMode: 'directionColumn',
+        columns: { occurredAt: '交易日期', amount: '收入金额', direction: '摘要' },
+        directionMap: { 入: 'income' },
+        balanceCheck: false,
+      }),
+      meta,
+    );
+    expect(t.amount).toEqual({ mode: 'directionColumn', column: ['摘要'], map: { 入: 'income' } });
+  });
+
   it('正向："其他"来源不设账户类型', () => {
     expect(compileUserTemplate(spec({ sourceKind: 'other', balanceCheck: false }), meta).account).toBeUndefined();
   });

@@ -83,6 +83,18 @@ describe('推荐其他配置', () => {
     expect(suggestTitleKeyword([['户名：张三'], ['-----'], ['2026-09-01'], ['标题']], 4)).toBe('标题');
   });
 
+  it('反向：含数字的行（笔数、日期）不做关键词——真实样本中"共980笔记录"曾被推荐，导致同类文件无法自动识别', () => {
+    const alipayLike = [
+      ['导出信息：'],
+      ['共980笔记录'],
+      ['收入：24笔 60156.11元'],
+      ['1.本回单内容可表明支付宝受理了相应支付交易申请'],
+      ['------支付宝（中国）网络技术有限公司  电子客户回单------'],
+      ['交易时间', '金额', '收/支'],
+    ];
+    expect(suggestTitleKeyword(alipayLike, 5)).toBe('支付宝（中国）网络技术有限公司  电子客户回单');
+  });
+
   it('反向：表头就是第一行、或还没选表头 → 不推荐关键词', () => {
     expect(suggestTitleKeyword(BANK_ROWS.slice(3), 0)).toBe('');
     expect(suggestTitleKeyword(BANK_ROWS, null)).toBe('');
