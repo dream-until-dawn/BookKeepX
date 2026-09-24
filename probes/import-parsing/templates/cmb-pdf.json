@@ -1,0 +1,21 @@
+{
+  "id": "cmb-pdf",
+  "version": 1,
+  "name": "招商银行交易流水（PDF）",
+  "fileType": "pdf",
+  "fingerprint": { "titleKeywords": ["招商银行交易流水", "China Merchants Bank"], "fileNameKeywords": ["招商银行交易流水"] },
+  "header": { "required": ["记账日期", "货币", "交易金额", "联机余额", "交易摘要", "对手信息"] },
+  "columns": {
+    "occurredAt": ["记账日期"],
+    "amount": ["交易金额"],
+    "balance": ["联机余额"],
+    "description": ["交易摘要"],
+    "counterparty": ["对手信息"],
+    "currency": ["货币"]
+  },
+  "amount": { "mode": "signed" },
+  "time": { "format": "yyyy-MM-dd", "timezone": "Asia/Shanghai" },
+  "acceptCurrencies": ["CNY"],
+  "verify": { "balanceChain": true },
+  "pdf": { "wrapTolerance": 12, "headerHeight": 30 }
+}
