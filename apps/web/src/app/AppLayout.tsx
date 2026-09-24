@@ -8,6 +8,7 @@ import { logout, ME_QUERY_KEY, useCurrentUser } from '../features/auth/api.ts';
 /** 顶部导航；新增页面时在这里加一项 */
 const NAV = [
   { to: '/', label: '首页' },
+  { to: '/transactions', label: '流水' },
   { to: '/categories', label: '分类' },
   { to: '/accounts', label: '账户' },
 ];

@@ -18,6 +18,12 @@
 
 查询需要 `viewer` 及以上，修改需要 `editor` 及以上。
 
+## 账本（P1-5）
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/ledgers/:ledgerId` | 账本信息：`{ id, name, currency, timezone, role }`。前端据 `timezone` 显示时间、换算表单时间，据 `role` 决定是否显示编辑按钮 |
+
 ## 分类（P1-4）
 
 | 接口 | 说明 |

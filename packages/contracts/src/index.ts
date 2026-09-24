@@ -36,4 +36,20 @@ export {
   updateCategoryRequestSchema,
 } from './categories.ts';
 export { type HealthResponse, healthResponseSchema } from './health.ts';
+export { type Ledger, type LedgerRoleValue, ledgerRoleSchema, ledgerSchema } from './ledgers.ts';
 export { centsSchema, positiveCentsSchema, yuanInputSchema } from './money.ts';
+export {
+  type CreateTransactionRequest,
+  createTransactionRequestSchema,
+  DIRECTION_LABELS,
+  type Direction,
+  directionSchema,
+  type Transaction,
+  type TransactionList,
+  type TransactionQuery,
+  transactionListSchema,
+  transactionQuerySchema,
+  transactionSchema,
+  type UpdateTransactionRequest,
+  updateTransactionRequestSchema,
+} from './transactions.ts';
