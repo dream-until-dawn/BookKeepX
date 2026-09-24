@@ -3,9 +3,11 @@
  * 新增页面：页面组件放在 features/<功能>/ 下，然后在这里登记。
  */
 import type { RouteObject } from 'react-router';
+import { AccountsPage } from '../features/accounts/AccountsPage.tsx';
 import { LoginPage } from '../features/auth/LoginPage.tsx';
 import { RegisterPage } from '../features/auth/RegisterPage.tsx';
 import { RequireAuth } from '../features/auth/RequireAuth.tsx';
+import { CategoriesPage } from '../features/categories/CategoriesPage.tsx';
 import { HomePage } from '../features/home/HomePage.tsx';
 import { AppLayout } from './AppLayout.tsx';
 
@@ -18,6 +20,10 @@ export const routes: RouteObject[] = [
         <AppLayout />
       </RequireAuth>
     ),
-    children: [{ path: '/', element: <HomePage /> }],
+    children: [
+      { path: '/', element: <HomePage /> },
+      { path: '/categories', element: <CategoriesPage /> },
+      { path: '/accounts', element: <AccountsPage /> },
+    ],
   },
 ];
