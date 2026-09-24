@@ -57,3 +57,36 @@
 | 名称 1~30 个字符；卡号后四位必须是 4 位数字 | 400 |
 | 被流水或导入批次引用的不能删除 | 409 `ACCOUNT_IN_USE`，提示改为停用 |
 | 停用：不出现在记账时的选择列表中，历史流水保留；可以恢复 | — |
+
+## 流水（P1-5）
+
+| 接口 | 说明 |
+|---|---|
+| `GET /api/ledgers/:ledgerId/transactions` | 列表（分页）+ 当前筛选条件下的收支合计 |
+| `GET /api/ledgers/:ledgerId/transactions/:id` | 单条 |
+| `POST /api/ledgers/:ledgerId/transactions` | 记一笔：`{ direction, amount, occurredAt, categoryId?, accountId?, counterparty?, note? }` |
+| `PATCH /api/ledgers/:ledgerId/transactions/:id` | 修改 |
+| `DELETE /api/ledgers/:ledgerId/transactions/:id` | 删除（软删除，可恢复） |
+| `POST /api/ledgers/:ledgerId/transactions/:id/restore` | 恢复已删除的流水 |
+
+**列表查询参数**：`month=YYYY-MM` 或 `from` / `to`（`YYYY-MM-DD`，含首尾两天）；`direction`；`categoryId`（选一级分类时**包含其子分类**）；`accountId`；`q`（在对方、说明、备注中搜索）；`deleted=true`（回收站）；`page`（从 1 开始）、`pageSize`（默认 50，最大 100）。排序：发生时间倒序。
+
+**合计口径**与统计一致（架构 §7、ADR-0004）：收入不含退款；支出 = 支出 − 退款；中性不计；跨来源重复（`duplicate_of_id` 非空）不计。
+
+**金额与时间**
+- 表单提交的 `amount` 是"元"字符串，服务端用 `parseYuanToCents` 转成分，必须大于 0；响应里一律是 `amountCents`（分）
+- `occurredAt` 必须是**带时区的** ISO 8601 时间（如 `2026-09-24T12:30:00+08:00`），不接受不带时区的写法，避免"按服务器时区解释"的歧义
+- 日期筛选（`month` / `from` / `to`）按**账本时区**（默认 Asia/Shanghai）切分，与 P0-2 验证的统计口径一致；前端显示时间也按账本时区
+
+**业务规则**
+
+| 规则 | 违反时 |
+|---|---|
+| 分类的组必须与收支方向一致（支出只能选支出分类） | 400 `CATEGORY_DIRECTION_MISMATCH` |
+| 新选择的分类不能是已隐藏的（原本就在用的隐藏分类可以保留） | 400 `CATEGORY_HIDDEN` |
+| 新选择的账户不能是已停用的（原本就在用的可以保留） | 400 `ACCOUNT_ARCHIVED` |
+| 分类 / 账户必须属于本账本 | 404 |
+| **导入的流水**只能修改分类、账户、备注；金额、时间、方向、对方以账单为准，不能改（否则去重和自校验会失效） | 400 `IMPORTED_FIELD_READONLY` |
+| 手动修改分类后 `category_source` 记为 `manual`，以后任何自动规则都不会覆盖它 | — |
+| 恢复时，如果同一平台单号已经被重新导入，则不能恢复 | 409 `TRANSACTION_DUPLICATE` |
+| 修改、删除已删除的流水 | 404（需先恢复） |
