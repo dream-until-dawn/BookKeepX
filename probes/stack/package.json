@@ -1,0 +1,16 @@
+{
+  "name": "@bookkeepx/probe-stack",
+  "private": true,
+  "type": "module",
+  "description": "P0-2~P0-5 探针：数据库链路 / 鉴权依赖 / 单仓工程 / 图表性能",
+  "scripts": {
+    "test": "pnpm -r test",
+    "typecheck": "pnpm -r typecheck"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.2",
+    "tsx": "^4.23.15",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

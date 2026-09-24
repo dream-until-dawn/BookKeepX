@@ -80,7 +80,7 @@ BookKeepX/
 | `sessions` | id, user_id, expires_at, user_agent | 服务端会话，Cookie 只存会话 id |
 | `accounts` | id, user_id, name, kind(wechat/alipay/bank/cash/other) | 资金账户，"钱从哪付的" |
 | `categories` | id, user_id, parent_id, name, direction(income/expense), sort | 两级分类；注册时写入默认分类 |
-| `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, duplicate_of_id, refund_of_id, created_at, updated_at, deleted_at | 核心流水表 |
+| `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, duplicate_of_id, is_refund, refund_of_id, created_at, updated_at, deleted_at | 核心流水表 |
 | `import_batches` | id, user_id, template_id, template_version, detect_score, file_name, file_sha256, total_rows, imported_rows, skipped_rows, status, created_at | 每次导入一条，支持整批撤销 |
 | `categories`（补充） | preset_key, group(expense/income/neutral), hidden | 系统预置分类树复制给每个用户，见 [ADR-0004](./adr/0004-categories-and-rules.md) |
 | `category_rules` | id, user_id, name, enabled, priority, match, conditions(jsonb), action(jsonb), hit_count | 声明式分类规则（无正则），见 ADR-0004；也是 P3 agent 自动分类的产出形式 |
@@ -128,12 +128,12 @@ BookKeepX/
 ## 7. 统计口径（MVP）
 
 - 月度：收入合计、支出合计、结余（`neutral` 不参与）；
-- 退款：**冲减支出、不计收入**，记在退款发生时间、冲减原消费所在分类（ADR-0004 Q4）；`duplicate_of_id` 非空的记录不参与统计；
+- 退款：`is_refund` 标记（找不到原消费时 `refund_of_id` 为空，仍需冲减），**冲减支出、不计收入**，记在退款发生时间、冲减原消费所在分类（ADR-0004 Q4）；`duplicate_of_id` 非空的记录不参与统计；
 - 分类占比：按一级分类汇总支出（饼 / 环形图）；
 - 趋势：按日 / 月的收支折线；
 - 时区：按用户时区（默认 Asia/Shanghai）切分"日"和"月"。
 
-聚合由 PostgreSQL 完成（`GROUP BY` + `date_trunc`），口径定义与边界测试放在 core，保证"同一口径只有一个实现"。
+聚合由 PostgreSQL 完成（`GROUP BY` + `date_trunc(... AT TIME ZONE 用户时区)`，P0-2 已验证；聚合结果需经安全整数转换），口径定义与边界测试放在 core，保证"同一口径只有一个实现"。
 
 ## 8. 为后续阶段预留
 
