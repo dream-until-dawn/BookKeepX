@@ -12,6 +12,7 @@
 | 领域 | 选型 | 理由 |
 |---|---|---|
 | 语言 | TypeScript（前后端统一） | 领域逻辑（金额、导入解析、统计口径）只写一份，前后端共享；维护者只需掌握一门语言 |
+| 代码检查 / 格式化 | Biome（见 ADR-0005，替代原计划的 ESLint + Prettier） | typescript-eslint 不兼容 TypeScript 7 |
 | 仓库 | pnpm workspace 单仓（monorepo） | 模块边界清晰，共享包无需发布 |
 | 前端 | React + Vite + React Router + TanStack Query | 主流、生态大；TanStack Query 负责服务端数据缓存 |
 | UI | Tailwind CSS + shadcn/ui | 组件源码在仓库内，可控可改 |

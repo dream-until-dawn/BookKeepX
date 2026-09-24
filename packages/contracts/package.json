@@ -1,0 +1,15 @@
+{
+  "name": "@bookkeepx/contracts",
+  "private": true,
+  "type": "module",
+  "description": "API 契约：zod schema（服务端校验）+ 推导类型（前端使用）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "zod": "^4.6.5"
+  }
+}

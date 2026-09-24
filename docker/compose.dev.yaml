@@ -1,0 +1,22 @@
+# 开发环境 PostgreSQL：pnpm db:up 启动，数据保存在命名卷中，重启不丢
+name: bookkeepx-dev
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: bookkeepx
+      POSTGRES_PASSWORD: bookkeepx-dev
+      POSTGRES_DB: bookkeepx
+      TZ: UTC
+    ports:
+      - "54320:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      # 首次初始化时创建测试库 bookkeepx_test
+      - ./postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookkeepx -d bookkeepx"]
+      interval: 2s
+      retries: 15
+volumes:
+  pgdata:
