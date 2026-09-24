@@ -202,6 +202,15 @@ describe('提交', () => {
     expect((await ledgerTransactions()).total).toBe(0);
   });
 
+  it('反向：改成已隐藏的分类 → 400，且什么都没写入', async () => {
+    const b = await preview(alipayCsv([{ id: 'A1', amount: '1' }]));
+    const hiddenId = await catId('expense.other');
+    await as(app, alice).patch(`${base()}/categories/${hiddenId}`, { hidden: true });
+    const res = await commit(b, [{ index: 0, categoryId: hiddenId }]);
+    expect(res.json().code).toBe('CATEGORY_HIDDEN');
+    expect((await ledgerTransactions()).total).toBe(0);
+  });
+
   it('反向：重复提交 → 409；放弃的预览不能提交；超过 24 小时的预览 → 410', async () => {
     const b1 = await preview(alipayCsv([{ id: 'A1', amount: '1' }]));
     await commit(b1);
@@ -398,6 +407,22 @@ describe('跨来源重复（ADR-0004 Q2-B）', () => {
     );
     expect(b.rows!.map((r) => r.crossSource)).toEqual([null, null]);
   });
+
+  it('反向：用这张卡买理财（被规则识别为中性，Q2-A）→ 不走跨来源重复，银行那条照常计入', async () => {
+    const card = await cardAccount();
+    await database.db.insert(transactions).values({
+      ledgerId: alice.ledgerId,
+      accountId: card.id,
+      direction: 'expense',
+      amountCents: 100000,
+      occurredAt: new Date('2026-09-01T00:00:00+08:00'),
+      source: 'import',
+    });
+    const b = await preview(
+      alipayCsv([{ id: 'F1', amount: '1000.00', counterparty: '蚂蚁基金销售', pay: '招商银行储蓄卡(1032)' }]),
+    );
+    expect(b.rows![0]).toMatchObject({ direction: 'neutral', crossSource: null });
+  });
 });
 
 describe('撤销', () => {
@@ -418,6 +443,34 @@ describe('撤销', () => {
     expect((await as(app, alice).post(`${base()}/imports/${first.id}/revert`, {})).json().code).toBe(
       'IMPORT_NOT_COMMITTED',
     );
+  });
+
+  it('正向：撤销平台账单 → 被它标记为重复的银行记录恢复计入统计（不连带删除）', async () => {
+    const card = (
+      await as(app, alice).post(`${base()}/accounts`, { name: '招行储蓄卡', kind: 'bank_debit', cardLast4: '1032' })
+    ).json();
+    const [bank] = await database.db
+      .insert(transactions)
+      .values({
+        ledgerId: alice.ledgerId,
+        accountId: card.id,
+        direction: 'expense',
+        amountCents: 5000,
+        occurredAt: new Date('2026-09-01T00:00:00+08:00'),
+        timePrecision: 'day',
+        source: 'import',
+      })
+      .returning();
+    const b = await preview(alipayCsv([{ id: 'X1', amount: '50.00', pay: '招商银行储蓄卡(1032)' }]));
+    await commit(b);
+    expect((await ledgerTransactions()).summary.expenseCents).toBe(5000);
+
+    expect((await as(app, alice).post(`${base()}/imports/${b.id}/revert`, {})).statusCode).toBe(200);
+    const [after] = await database.db.select().from(transactions).where(eq(transactions.id, bank!.id));
+    expect(after!.duplicateOfId).toBeNull();
+    const list = await ledgerTransactions();
+    expect(list.total).toBe(1);
+    expect(list.summary.expenseCents).toBe(5000);
   });
 
   it('正向：撤销后同一文件可以重新导入', async () => {

@@ -9,6 +9,7 @@ import { RegisterPage } from '../features/auth/RegisterPage.tsx';
 import { RequireAuth } from '../features/auth/RequireAuth.tsx';
 import { CategoriesPage } from '../features/categories/CategoriesPage.tsx';
 import { HomePage } from '../features/home/HomePage.tsx';
+import { ImportPage } from '../features/imports/ImportPage.tsx';
 import { TransactionsPage } from '../features/transactions/TransactionsPage.tsx';
 import { AppLayout } from './AppLayout.tsx';
 
@@ -24,6 +25,7 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/transactions', element: <TransactionsPage /> },
+      { path: '/imports', element: <ImportPage /> },
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/accounts', element: <AccountsPage /> },
     ],
