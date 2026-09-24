@@ -1,0 +1,23 @@
+{
+  "name": "@bookkeepx/web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite --port 5174 --strictPort",
+    "build": "vite build",
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "echo \"web 探针无单元测试，性能在浏览器中实测\""
+  },
+  "dependencies": {
+    "@bookkeepx/core": "workspace:*",
+    "echarts": "^6.1.0",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.1",
+    "vite": "^8.3.0"
+  }
+}

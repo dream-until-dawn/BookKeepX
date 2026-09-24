@@ -1,0 +1,18 @@
+# P0-2 探针用的 PostgreSQL（数据放 tmpfs，停掉即清空；端口避开本机常用的 5432）
+name: bookkeepx-probe
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: bookkeepx
+      POSTGRES_PASSWORD: probe-only-password
+      POSTGRES_DB: bookkeepx_probe
+      TZ: UTC
+    ports:
+      - "55432:5432"
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bookkeepx -d bookkeepx_probe"]
+      interval: 2s
+      retries: 15

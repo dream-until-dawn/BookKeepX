@@ -13,10 +13,10 @@
 | P0-1c ✅ | 统一分类 | 预置分类 + 规则在真实样本上的覆盖率基线 | 同上 |
 | P0-1d ✅ | 多样本验证 | 9 份新版样本全部自动识别并通过校验；旧版格式不误用模板 | [结论](./probes/p0-1d-more-samples.md) |
 | P0-1e ✅ | 退款冲减 | 全部真实退款关联到原消费；支付宝净支出与官方汇总一致 | [结论](./probes/p0-1e-refunds.md) |
-| P0-2 | 数据库链路 | Docker 起 PostgreSQL；Drizzle 建表 + 迁移；bigint 金额写入读出一致；按月 `GROUP BY` 聚合结果正确 | — |
-| P0-3 | 鉴权依赖 | @node-rs/argon2 在 Windows 本机与 Linux 容器内均可安装、哈希、校验 | — |
-| P0-4 | 单仓工程 | pnpm workspace 下 core 被 server / web 同时引用；Vitest 跨包运行；TS 类型联动 | — |
-| P0-5 | 图表性能 | ECharts 渲染 1 年（约 3,000 笔）聚合后的数据，首屏可接受 | — |
+| P0-2 ✅ | 数据库链路 | Docker 起 PostgreSQL；Drizzle 建表 + 迁移；bigint 金额写入读出一致；按月 `GROUP BY` 聚合结果正确 | [结论](./probes/p0-2-5-stack.md) |
+| P0-3 ✅ | 鉴权依赖 | @node-rs/argon2 在 Windows 本机与 Linux 容器内均可安装、哈希、校验 | [结论](./probes/p0-2-5-stack.md) |
+| P0-4 ✅ | 单仓工程 | pnpm workspace 下 core 被 server / web 同时引用；Vitest 跨包运行；TS 类型联动 | [结论](./probes/p0-2-5-stack.md) |
+| P0-5 ✅ | 图表性能 | ECharts 渲染 1 年（约 3,000 笔）聚合后的数据，首屏可接受 | [结论](./probes/p0-2-5-stack.md) |
 
 P0 完成后产出：正式的 monorepo 骨架、CI（lint + 类型检查 + 测试）、docker compose 开发环境。
 

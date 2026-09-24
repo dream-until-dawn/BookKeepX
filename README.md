@@ -19,6 +19,7 @@
   - [P0-1b/1c 解析模板体系与统一分类](docs/probes/p0-1bc-templates-and-categories.md)
   - [P0-1d 多份历史样本验证](docs/probes/p0-1d-more-samples.md)
   - [P0-1e 退款关联与冲减支出](docs/probes/p0-1e-refunds.md)
+  - [P0-2~5 数据库 / 鉴权 / 单仓 / 图表](docs/probes/p0-2-5-stack.md)
 
 ## 技术栈（提议中）
 
