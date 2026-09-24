@@ -59,6 +59,11 @@ P0-1 探针是"每个来源写一个适配器"的方式。它能验证格式，�
     "balanceChain": true,
     "summary": null                // 或 { "total": "共{n}笔记录", "labels": { "expense": "支出" }, "countIncludesSkipped": true }
   },
+  "refund": {                     // 退款识别与关联（见 P0-1e）
+    "detect": { "statuses": ["退款成功"] },            // 或 { "hintSuffix": "-退款" }
+    "link": { "mode": "externalIdPrefix", "separators": ["_", "*"] }  // 或 { "mode": "counterparty" }
+  },
+  "zeroAmount": "skip",           // 0 元交易跳过（默认 error）
   "preambleFields": { "holderName": "名：{v}" }, // 从说明文字提取户主姓名（用于识别"转给自己"）
   "pdf": { "wrapTolerance": 12 }   // 仅 PDF：列位置由表头列名的 x 坐标动态确定，不写死
 }

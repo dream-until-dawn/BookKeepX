@@ -80,7 +80,7 @@ BookKeepX/
 | `sessions` | id, user_id, expires_at, user_agent | 服务端会话，Cookie 只存会话 id |
 | `accounts` | id, user_id, name, kind(wechat/alipay/bank/cash/other) | 资金账户，"钱从哪付的" |
 | `categories` | id, user_id, parent_id, name, direction(income/expense), sort | 两级分类；注册时写入默认分类 |
-| `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, duplicate_of_id, created_at, updated_at, deleted_at | 核心流水表 |
+| `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, duplicate_of_id, refund_of_id, created_at, updated_at, deleted_at | 核心流水表 |
 | `import_batches` | id, user_id, template_id, template_version, detect_score, file_name, file_sha256, total_rows, imported_rows, skipped_rows, status, created_at | 每次导入一条，支持整批撤销 |
 | `categories`（补充） | preset_key, group(expense/income/neutral), hidden | 系统预置分类树复制给每个用户，见 [ADR-0004](./adr/0004-categories-and-rules.md) |
 | `category_rules` | id, user_id, name, enabled, priority, match, conditions(jsonb), action(jsonb), hit_count | 声明式分类规则（无正则），见 ADR-0004；也是 P3 agent 自动分类的产出形式 |
@@ -105,6 +105,7 @@ BookKeepX/
   └─► ③ 解析：通用引擎按模板把行转成 RawRecord（保留原始列，便于排错）
   └─► ④ 规范化：RawRecord → TransactionDraft（金额转分、墙上时间转 timestamptz、方向判定含 neutral、按状态过滤如"交易关闭"）
   └─► ④' 自校验（质量门槛）：与文件自带汇总比对 / 银行余额链校验；不通过则拒绝导入并指出问题
+  └─► ④'' 退款关联：退款挂到原消费（支付宝按单号前缀精确匹配，微信按对方 + 状态 + 金额）；有退款的"交易关闭"恢复入账
   └─► ⑤ 去重 + 自动分类：同来源按单号 / 去重键；**跨来源**（银行 ↔ 支付宝 / 微信）按同日 + 同额 + 支付方式提示疑似重复；分类按 手动 > 用户规则 > 系统规则 > 来源映射 的决策链（ADR-0004）
   └─► ⑥ 预览：返回给前端，用户可改分类、剔除行
   └─► ⑦ 提交：一个数据库事务内写入 import_batches + transactions
@@ -127,6 +128,7 @@ BookKeepX/
 ## 7. 统计口径（MVP）
 
 - 月度：收入合计、支出合计、结余（`neutral` 不参与）；
+- 退款：**冲减支出、不计收入**，记在退款发生时间、冲减原消费所在分类（ADR-0004 Q4）；`duplicate_of_id` 非空的记录不参与统计；
 - 分类占比：按一级分类汇总支出（饼 / 环形图）；
 - 趋势：按日 / 月的收支折线；
 - 时区：按用户时区（默认 Asia/Shanghai）切分"日"和"月"。

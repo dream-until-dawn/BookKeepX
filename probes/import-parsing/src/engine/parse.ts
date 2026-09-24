@@ -8,6 +8,7 @@ import { checkBalanceChain, type CheckIssue } from '../verify.ts';
 import type { Cell } from './reader.ts';
 import type { Table } from './table.ts';
 import type { ImportTemplate } from './template.ts';
+import { linkRefunds, type LinkedRecord, type RefundLinkResult } from './refund.ts';
 
 export interface RowError {
   row: string;
@@ -17,8 +18,8 @@ export interface RowError {
 export interface EngineResult {
   templateId: string;
   templateVersion: number;
-  /** 可入账的记录 */
-  records: (ParsedRecord & { categoryHint: string | null })[];
+  /** 可入账的记录（退款带 refund 字段） */
+  records: LinkedRecord[];
   /** 跳过的记录（0 元、按状态过滤）；保留下来用于汇总口径与预览展示 */
   skipped: (ParsedRecord & { skipReason: string })[];
   /** 无法解析的行 */
@@ -28,6 +29,8 @@ export interface EngineResult {
   issues: CheckIssue[];
   /** 从说明文字中提取的元信息（如户主姓名） */
   meta: { holderName?: string };
+  /** 退款关联统计 */
+  refundStats: RefundLinkResult['stats'];
 }
 
 const TIME_RE: Record<ImportTemplate['time']['format'], RegExp> = {
@@ -173,5 +176,18 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Infinity):
     if (m) meta.holderName = m[1];
   }
 
-  return { templateId: t.id, templateVersion: t.version, records, skipped, errors, summary, issues, meta };
+  // ⑥ 退款关联（在自校验之后：自校验要用平台原始口径，关联只影响入账与统计）
+  const linked = linkRefunds(records, skipped, t);
+
+  return {
+    templateId: t.id,
+    templateVersion: t.version,
+    records: linked.records,
+    skipped: linked.skipped,
+    errors,
+    summary,
+    issues,
+    meta,
+    refundStats: linked.stats,
+  };
 }

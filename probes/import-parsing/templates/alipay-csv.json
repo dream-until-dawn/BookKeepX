@@ -88,5 +88,19 @@
   "preambleFields": {
     "holderName": "姓名：{v}"
   },
-  "zeroAmount": "skip"
+  "zeroAmount": "skip",
+  "refund": {
+    "detect": {
+      "statuses": [
+        "退款成功"
+      ]
+    },
+    "link": {
+      "mode": "externalIdPrefix",
+      "separators": [
+        "_",
+        "*"
+      ]
+    }
+  }
 }
