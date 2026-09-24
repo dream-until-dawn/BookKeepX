@@ -1,0 +1,23 @@
+{
+  "name": "@bookkeepx/importers",
+  "private": true,
+  "type": "module",
+  "description": "账单导入：文件读取、通用解析引擎、内置模板（依赖较重，仅服务端使用，docs/import.md §1）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  },
+  "dependencies": {
+    "@bookkeepx/core": "workspace:*",
+    "exceljs": "^4.4.0",
+    "iconv-lite": "^0.7.3",
+    "papaparse": "^5.7.0",
+    "pdfjs-dist": "^6.3.289",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/papaparse": "^5.5.2"
+  }
+}

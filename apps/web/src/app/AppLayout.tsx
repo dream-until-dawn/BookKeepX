@@ -9,6 +9,7 @@ import { logout, ME_QUERY_KEY, useCurrentUser } from '../features/auth/api.ts';
 const NAV = [
   { to: '/', label: '首页' },
   { to: '/transactions', label: '流水' },
+  { to: '/imports', label: '导入' },
   { to: '/categories', label: '分类' },
   { to: '/accounts', label: '账户' },
 ];

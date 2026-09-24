@@ -61,9 +61,9 @@ BookKeepX/
 │  ├─ core/                领域核心（纯 TS）
 │  │  └─ src/
 │  │     ├─ money/         金额：分 ↔ 元、格式化、解析
-│  │     ├─ importers/     导入管线：通用引擎 + templates/*.json（每个来源一份）
 │  │     ├─ categories/    预置分类树、系统规则、来源映射、规则引擎
 │  │     └─ stats/         统计口径计算
+│  ├─ importers/           账单导入：文件读取、通用解析引擎、内置模板（依赖较重，仅服务端使用，见 docs/import.md §1）
 │  └─ contracts/           API 契约（zod schema + 推导类型）
 ├─ probes/                 P0 可行性探针（一次性验证代码，不进生产）
 ├─ docker/                 Dockerfile、docker-compose

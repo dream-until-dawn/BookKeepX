@@ -16,6 +16,8 @@ export class ApiError extends Error {
     readonly status: number,
     /** 服务端返回的业务错误码（如 INVALID_CREDENTIALS），没有时为 undefined */
     readonly code?: string,
+    /** 服务端附带的错误详情（如导入自校验的问题列表），结构由各接口约定 */
+    readonly details?: unknown,
   ) {
     super(message);
     this.name = 'ApiError';
@@ -30,13 +32,15 @@ export interface RequestOptions {
 async function request(method: string, path: string, body?: unknown): Promise<Response> {
   const headers: Record<string, string> = { accept: 'application/json' };
   if (method !== 'GET') headers[CLIENT_HEADER] = CLIENT_HEADER_VALUE;
-  if (body !== undefined) headers['content-type'] = 'application/json';
+  // FormData（上传文件）由浏览器自己生成 multipart 的 content-type 和分隔符，这里不能设置
+  const isForm = body instanceof FormData;
+  if (body !== undefined && !isForm) headers['content-type'] = 'application/json';
   try {
     return await fetch(path, {
       method,
       headers,
       credentials: 'same-origin',
-      ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      ...(body !== undefined ? { body: isForm ? body : JSON.stringify(body) } : {}),
     });
   } catch {
     throw new ApiError('无法连接服务器，请检查网络', 0);
@@ -45,8 +49,8 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
 
 /** 非 2xx：尽量取出服务端给出的中文错误信息和错误码 */
 async function toApiError(res: Response): Promise<ApiError> {
-  const body = (await res.json().catch(() => null)) as { error?: string; code?: string } | null;
-  return new ApiError(body?.error ?? `请求失败（${res.status}）`, res.status, body?.code);
+  const body = (await res.json().catch(() => null)) as { error?: string; code?: string; details?: unknown } | null;
+  return new ApiError(body?.error ?? `请求失败（${res.status}）`, res.status, body?.code, body?.details);
 }
 
 async function parse<S extends z.ZodType>(res: Response, schema: S): Promise<z.infer<S>> {
@@ -71,6 +75,7 @@ export async function apiGet<S extends z.ZodType>(
 
 /**
  * 修改类请求（POST / PUT / PATCH / DELETE）
+ * @param body JSON 请求体；传 FormData 时按 multipart 上传（如账单文件）
  * @param schema 响应的 schema；传 null 表示不关心响应体（如 204）
  * @throws ApiError
  */

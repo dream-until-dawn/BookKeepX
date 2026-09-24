@@ -11,12 +11,16 @@ export interface ErrorBody {
   error: string;
   /** 业务错误码（AppError 才有），前端据此区分处理 */
   code?: string;
+  /** 附加信息（如导入自校验的问题列表） */
+  details?: unknown;
 }
 
 export function registerErrorHandler(app: FastifyInstance) {
   app.setErrorHandler((err: FastifyError | AppError, req, reply) => {
     if (err instanceof AppError) {
-      return reply.code(err.statusCode).send({ error: err.message, code: err.code } satisfies ErrorBody);
+      const body: ErrorBody = { error: err.message, code: err.code };
+      if (err.details !== undefined) body.details = err.details;
+      return reply.code(err.statusCode).send(body);
     }
     const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
     if (status >= 500) {
