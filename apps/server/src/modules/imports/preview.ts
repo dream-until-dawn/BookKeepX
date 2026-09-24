@@ -45,6 +45,27 @@ export function bankDedupeKey(accountId: string | null, r: BillRecord): string |
     .digest('hex');
 }
 
+/**
+ * 整个文件的去重键（与 records 一一对应，有单号的记录为 null）
+ *
+ * - 有余额：按上面的银行规则（余额使同一天同金额的记录也能区分）
+ * - 既没有单号也没有余额（部分用户模板，import.md §9.5）：账户 + 完整时间 + 带符号金额 + 对方 + 说明 +
+ *   "本文件中与它完全相同的第几条"。序号让同一天两笔完全相同的交易（如两次 2 元地铁）不被误判为重复；
+ *   同一文件再次上传时序号不变，仍能识别为重复
+ */
+export function dedupeKeys(accountId: string | null, records: BillRecord[]): (string | null)[] {
+  const seen = new Map<string, number>();
+  return records.map((r) => {
+    if (r.externalId) return null;
+    if (r.balanceCents !== null) return bankDedupeKey(accountId, r);
+    const signed = r.direction === 'expense' ? -r.amountCents : r.amountCents;
+    const base = `${accountId ?? 'none'}|${r.occurredAt}|${signed}|${r.counterparty}|${r.description}`;
+    const n = (seen.get(base) ?? 0) + 1;
+    seen.set(base, n);
+    return createHash('sha256').update(`seq|${base}|#${n}`).digest('hex');
+  });
+}
+
 const isBankTemplate = (t: ImportTemplate) => t.account?.kind === 'bank_debit' || t.account?.kind === 'credit_card';
 
 export async function buildPreview(db: Db, scope: LedgerScope, input: PreviewInput): Promise<StoredRow[]> {
@@ -70,7 +91,8 @@ export async function buildPreview(db: Db, scope: LedgerScope, input: PreviewInp
             )
         ).map((r) => r.id),
   );
-  const keys = records.map((r) => bankDedupeKey(accountId, r)).filter((x): x is string => !!x);
+  const keyOf = dedupeKeys(accountId, records);
+  const keys = keyOf.filter((x): x is string => !!x);
   const existingKeys = new Set(
     keys.length === 0
       ? []
@@ -136,7 +158,7 @@ export async function buildPreview(db: Db, scope: LedgerScope, input: PreviewInp
   const rows: StoredRow[] = [];
   for (const r of records) {
     const refund = isRefundRecord(r, t) && r.refund ? r.refund : null;
-    const dedupeKey = bankDedupeKey(accountId, r);
+    const dedupeKey = keyOf[r.index] ?? null;
     const duplicate = (r.externalId && existingIds.has(r.externalId)) || (dedupeKey && existingKeys.has(dedupeKey));
     const status: ImportRow['status'] = r.skipReason ? 'skipped' : duplicate ? 'duplicate' : 'new';
 

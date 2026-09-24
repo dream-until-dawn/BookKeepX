@@ -11,6 +11,7 @@ import type { Db, Tx } from '../../db/client.ts';
 import { isUniqueViolation } from '../../db/pg-error.ts';
 import { accounts, categories, categoryRules, importBatches, ledgers, transactions } from '../../db/schema/index.ts';
 import { AppError } from '../../errors.ts';
+import { loadUserTemplates, markUsed, templateNames } from '../import-templates/service.ts';
 import type { LedgerScope } from '../ledgers/access.ts';
 import { buildPreview, type StoredRow } from './preview.ts';
 
@@ -22,10 +23,15 @@ export const MAX_FILE_BYTES = 10 * 1024 * 1024;
 type BatchRow = typeof importBatches.$inferSelect;
 interface StoredPreview {
   rows: StoredRow[];
+  /**
+   * 来源标识（写入流水的 external_source）：生成预览时从模板取出存下，
+   * 提交时不再依赖模板——模板在预览期间被修改或删除也不影响提交（import.md §9.6）。
+   * P1-6 时期生成的预览没有这一项，提交时回退到按模板 id 查内置模板。
+   */
+  source?: string;
 }
 
 const notFound = () => new AppError(404, 'IMPORT_NOT_FOUND', '导入记录不存在');
-const templateName = (id: string) => BUILTIN_TEMPLATES.find((t) => t.id === id)?.name ?? id;
 
 /** 去掉内部字段，只保留接口约定的预览行字段 */
 function toApiRow(r: StoredRow): ImportRow {
@@ -67,14 +73,21 @@ async function sameFileImportedBefore(db: Db, scope: LedgerScope, b: BatchRow): 
   return !!x;
 }
 
-async function toDto(db: Db, scope: LedgerScope, b: BatchRow, withRows: boolean): Promise<ImportBatch> {
+async function toDto(
+  db: Db,
+  scope: LedgerScope,
+  b: BatchRow,
+  withRows: boolean,
+  names?: Map<string, string>,
+): Promise<ImportBatch> {
   const preview = b.preview as StoredPreview | null;
+  const templateName = (names ?? (await templateNames(db, [b.templateId]))).get(b.templateId) ?? b.templateId;
   return {
     id: b.id,
     status: b.status,
     fileName: b.fileName,
     templateId: b.templateId,
-    templateName: templateName(b.templateId),
+    templateName,
     templateVersion: b.templateVersion,
     detectScore: b.detectScore,
     accountId: b.accountId,
@@ -132,13 +145,15 @@ export interface UploadInput {
 
 export async function uploadBill(db: Db, scope: LedgerScope, input: UploadInput): Promise<UploadResponse> {
   if (input.bytes.length === 0) throw new AppError(400, 'IMPORT_EMPTY_FILE', '文件是空的');
-  if (input.templateId && !BUILTIN_TEMPLATES.some((t) => t.id === input.templateId)) {
+  // 内置模板 + 当前用户自己的模板一起参与识别（import.md §9.4）
+  const templates = [...BUILTIN_TEMPLATES, ...(await loadUserTemplates(db, scope.userId))];
+  if (input.templateId && !templates.some((t) => t.id === input.templateId)) {
     throw new AppError(400, 'IMPORT_TEMPLATE_NOT_FOUND', '所选模板不存在');
   }
 
   let result: Awaited<ReturnType<typeof parseBill>>;
   try {
-    result = await parseBill(input.bytes, input.fileName, { templateId: input.templateId });
+    result = await parseBill(input.bytes, input.fileName, { templateId: input.templateId, templates });
   } catch (e) {
     throw new AppError(400, 'IMPORT_UNREADABLE', (e as Error).message);
   }
@@ -147,7 +162,7 @@ export async function uploadBill(db: Db, scope: LedgerScope, input: UploadInput)
     throw new AppError(
       400,
       'IMPORT_UNSUPPORTED',
-      '暂不支持这种账单格式（目前支持微信 xlsx、支付宝 csv、招商银行 PDF）',
+      '暂不支持这种账单格式（内置支持微信 xlsx、支付宝 csv、招商银行 PDF），可以为它创建自定义模板',
     );
   }
 
@@ -189,12 +204,13 @@ export async function uploadBill(db: Db, scope: LedgerScope, input: UploadInput)
       periodStart: file.meta.periodStart,
       periodEnd: file.meta.periodEnd,
       verifyResult: { ok: true },
-      preview: { rows } satisfies StoredPreview,
+      preview: { rows, source: template.source } satisfies StoredPreview,
       totalRows: rows.length,
       skippedRows: rows.filter((r) => r.status === 'skipped').length,
       duplicateRows: rows.filter((r) => r.status === 'duplicate').length,
     })
     .returning();
+  if (!BUILTIN_TEMPLATES.some((t) => t.id === template.id)) await markUsed(db, scope.userId, template.id, input.now);
   return { status: 'preview', batch: await toDto(db, scope, batch!, true) };
 }
 
@@ -236,7 +252,11 @@ export async function listBatches(db: Db, scope: LedgerScope): Promise<ImportBat
     .where(eq(importBatches.ledgerId, scope.ledgerId))
     .orderBy(desc(importBatches.createdAt))
     .limit(100);
-  return Promise.all(rows.map((b) => toDto(db, scope, b, false)));
+  const names = await templateNames(
+    db,
+    rows.map((b) => b.templateId),
+  );
+  return Promise.all(rows.map((b) => toDto(db, scope, b, false, names)));
 }
 
 export async function discardBatch(db: Db, scope: LedgerScope, id: string, now: Date): Promise<void> {
@@ -283,7 +303,7 @@ export async function commitBatch(
     }
   }
 
-  const template = BUILTIN_TEMPLATES.find((t) => t.id === batch.templateId)!;
+  const source = batch.preview.source ?? BUILTIN_TEMPLATES.find((t) => t.id === batch.templateId)!.source;
   const included = rows.filter((r) => r.include);
 
   try {
@@ -313,7 +333,7 @@ export async function commitBatch(
             description: r.description,
             source: 'import',
             importBatchId: batch.id,
-            externalSource: r.externalId ? template.source : null,
+            externalSource: r.externalId ? source : null,
             externalId: r.externalId,
             dedupeKey: r.dedupeKey,
             balanceAfterCents: r.balanceCents,

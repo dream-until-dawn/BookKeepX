@@ -9,8 +9,22 @@ import type { TestUser } from './api-helpers.ts';
 
 type App = ReturnType<typeof buildApp>;
 
-/** 以 multipart/form-data 上传一个文件（可附带普通字段）；文件名按 UTF-8 原样发送，与浏览器一致 */
+/** 上传账单到用户的默认账本 */
 export function upload(app: App, user: TestUser, bytes: Buffer, fileName: string, fields: Record<string, string> = {}) {
+  return postFile(app, user, `/api/ledgers/${user.ledgerId}/imports`, bytes, fileName, fields);
+}
+
+/**
+ * 以 multipart/form-data 上传一个文件；普通字段放在文件之前（与前端一致）；文件名按 UTF-8 原样发送，与浏览器一致
+ */
+export function postFile(
+  app: App,
+  user: TestUser,
+  url: string,
+  bytes: Buffer,
+  fileName: string,
+  fields: Record<string, string> = {},
+) {
   const boundary = `----bkx${Math.random().toString(16).slice(2)}`;
   const parts: Buffer[] = [];
   for (const [k, v] of Object.entries(fields)) {
@@ -25,7 +39,7 @@ export function upload(app: App, user: TestUser, bytes: Buffer, fileName: string
   );
   return app.inject({
     method: 'POST',
-    url: `/api/ledgers/${user.ledgerId}/imports`,
+    url,
     headers: { [CLIENT_HEADER]: CLIENT_HEADER_VALUE, 'content-type': `multipart/form-data; boundary=${boundary}` },
     cookies: { [SESSION_COOKIE]: user.token },
     payload: Buffer.concat(parts),
