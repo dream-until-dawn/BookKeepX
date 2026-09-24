@@ -1,55 +1,177 @@
 {
-  "version": 1,
+  "version": 2,
   "groups": {
     "expense": [
-      { "key": "expense.food", "name": "餐饮", "children": [
-        { "key": "expense.food.meal", "name": "正餐" },
-        { "key": "expense.food.delivery", "name": "外卖" },
-        { "key": "expense.food.snack", "name": "零食饮品" }
-      ]},
-      { "key": "expense.transport", "name": "交通", "children": [
-        { "key": "expense.transport.public", "name": "公共交通" },
-        { "key": "expense.transport.taxi", "name": "打车" },
-        { "key": "expense.transport.car", "name": "汽车（油费/充电/停车/保养）" },
-        { "key": "expense.transport.travel", "name": "长途出行" }
-      ]},
-      { "key": "expense.shopping", "name": "购物", "children": [
-        { "key": "expense.shopping.daily", "name": "日用百货" },
-        { "key": "expense.shopping.clothing", "name": "服饰" },
-        { "key": "expense.shopping.digital", "name": "数码电器" },
-        { "key": "expense.shopping.home", "name": "家居" }
-      ]},
-      { "key": "expense.housing", "name": "居住", "children": [
-        { "key": "expense.housing.rent", "name": "房租" },
-        { "key": "expense.housing.utility", "name": "水电燃气" }
-      ]},
-      { "key": "expense.telecom", "name": "通讯与订阅", "children": [
-        { "key": "expense.telecom.phone", "name": "话费网费" },
-        { "key": "expense.telecom.subscription", "name": "会员订阅" }
-      ]},
-      { "key": "expense.health", "name": "医疗健康" },
-      { "key": "expense.beauty", "name": "美容美发" },
-      { "key": "expense.entertainment", "name": "娱乐休闲" },
-      { "key": "expense.education", "name": "学习" },
-      { "key": "expense.social", "name": "人情往来" },
-      { "key": "expense.insurance", "name": "保险" },
-      { "key": "expense.finance", "name": "金融费用（利息/手续费）" },
-      { "key": "expense.other", "name": "其他支出" }
+      {
+        "key": "expense.food",
+        "name": "餐饮",
+        "children": [
+          {
+            "key": "expense.food.meal",
+            "name": "正餐"
+          },
+          {
+            "key": "expense.food.delivery",
+            "name": "外卖"
+          },
+          {
+            "key": "expense.food.snack",
+            "name": "零食饮品"
+          }
+        ]
+      },
+      {
+        "key": "expense.transport",
+        "name": "交通",
+        "children": [
+          {
+            "key": "expense.transport.public",
+            "name": "公共交通"
+          },
+          {
+            "key": "expense.transport.taxi",
+            "name": "打车"
+          },
+          {
+            "key": "expense.transport.car",
+            "name": "汽车（油费/充电/停车/保养）"
+          },
+          {
+            "key": "expense.transport.travel",
+            "name": "长途出行"
+          }
+        ]
+      },
+      {
+        "key": "expense.shopping",
+        "name": "购物",
+        "children": [
+          {
+            "key": "expense.shopping.daily",
+            "name": "日用百货"
+          },
+          {
+            "key": "expense.shopping.clothing",
+            "name": "服饰"
+          },
+          {
+            "key": "expense.shopping.digital",
+            "name": "数码电器"
+          },
+          {
+            "key": "expense.shopping.home",
+            "name": "家居"
+          }
+        ]
+      },
+      {
+        "key": "expense.housing",
+        "name": "居住",
+        "children": [
+          {
+            "key": "expense.housing.rent",
+            "name": "房租"
+          },
+          {
+            "key": "expense.housing.utility",
+            "name": "水电燃气"
+          }
+        ]
+      },
+      {
+        "key": "expense.telecom",
+        "name": "通讯与订阅",
+        "children": [
+          {
+            "key": "expense.telecom.phone",
+            "name": "话费网费"
+          },
+          {
+            "key": "expense.telecom.subscription",
+            "name": "会员订阅"
+          }
+        ]
+      },
+      {
+        "key": "expense.health",
+        "name": "医疗健康"
+      },
+      {
+        "key": "expense.beauty",
+        "name": "美容美发"
+      },
+      {
+        "key": "expense.entertainment",
+        "name": "娱乐休闲"
+      },
+      {
+        "key": "expense.education",
+        "name": "学习"
+      },
+      {
+        "key": "expense.social",
+        "name": "人情往来"
+      },
+      {
+        "key": "expense.insurance",
+        "name": "保险"
+      },
+      {
+        "key": "expense.finance",
+        "name": "金融费用（利息/手续费）"
+      },
+      {
+        "key": "expense.repay",
+        "name": "还款（贷款/信用卡）"
+      },
+      {
+        "key": "expense.other",
+        "name": "其他支出"
+      }
     ],
     "income": [
-      { "key": "income.salary", "name": "工资" },
-      { "key": "income.interest", "name": "利息收益" },
-      { "key": "income.refund", "name": "退款" },
-      { "key": "income.transfer", "name": "他人转账" },
-      { "key": "income.redpacket", "name": "红包" },
-      { "key": "income.other", "name": "其他收入" }
+      {
+        "key": "income.salary",
+        "name": "工资"
+      },
+      {
+        "key": "income.interest",
+        "name": "利息收益"
+      },
+      {
+        "key": "income.refund",
+        "name": "退款"
+      },
+      {
+        "key": "income.transfer",
+        "name": "他人转账"
+      },
+      {
+        "key": "income.redpacket",
+        "name": "红包"
+      },
+      {
+        "key": "income.other",
+        "name": "其他收入"
+      }
     ],
     "neutral": [
-      { "key": "neutral.invest", "name": "理财申购赎回" },
-      { "key": "neutral.self", "name": "自己账户间转账" },
-      { "key": "neutral.topup", "name": "充值提现" },
-      { "key": "neutral.repay", "name": "还款" },
-      { "key": "neutral.other", "name": "其他中性" }
+      {
+        "key": "neutral.invest",
+        "name": "理财申购赎回"
+      },
+      {
+        "key": "neutral.self",
+        "name": "自己账户间转账"
+      },
+      {
+        "key": "neutral.topup",
+        "name": "充值提现"
+      },
+      {
+        "key": "neutral.other",
+        "name": "其他中性"
+      }
     ]
   }
 }

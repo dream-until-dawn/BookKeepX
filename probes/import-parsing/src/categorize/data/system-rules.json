@@ -286,5 +286,33 @@
     "action": {
       "categoryKey": "income.other"
     }
+  },
+  {
+    "name": "贷款/信用卡还款（算支出）",
+    "match": "all",
+    "conditions": [
+      {
+        "field": "anyText",
+        "op": "containsAny",
+        "values": [
+          "小额贷款",
+          "白条",
+          "花呗",
+          "借呗",
+          "信用卡还款",
+          "贷款还款"
+        ]
+      },
+      {
+        "field": "direction",
+        "op": "equals",
+        "values": [
+          "expense"
+        ]
+      }
+    ],
+    "action": {
+      "categoryKey": "expense.repay"
+    }
   }
 ]

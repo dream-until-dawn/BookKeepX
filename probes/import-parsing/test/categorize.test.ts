@@ -61,6 +61,18 @@ describe('分类决策链', () => {
     expect(r).toMatchObject({ categoryKey: 'neutral.self', direction: 'neutral', source: 'system_rule' });
   });
 
+  it('正向（负责人决定 Q1）：贷款 / 信用卡还款算支出，归入"还款"', () => {
+    for (const cp of ['某某小额贷款有限公司', '京东白条', '花呗']) {
+      expect(classify(tx({ counterparty: cp, source: 'cmb-pdf' }), cfg)).toMatchObject({ categoryKey: 'expense.repay', direction: 'expense' });
+    }
+  });
+
+  it('反向：贷款放款（收入方向）不会被还款规则归为支出', () => {
+    const r = classify(tx({ direction: 'income', counterparty: '某某小额贷款有限公司', source: 'cmb-pdf' }), cfg);
+    expect(r.categoryKey).not.toBe('expense.repay');
+    expect(r.direction).toBe('income');
+  });
+
   it('反向：没有户主姓名时，isSelf 条件不成立', () => {
     expect(classify(tx({ counterparty: '张三' }), cfg).categoryKey).not.toBe('neutral.self');
   });
@@ -168,6 +180,25 @@ describe.skipIf(!hasSamples)('真实样本分类', () => {
     const { r, results } = await run('.pdf');
     expect(r.meta.holderName).toBeTruthy();
     expect(results.some((x) => x.categoryKey === 'neutral.self' && x.direction === 'neutral')).toBe(true);
+  });
+
+  it('跨来源（负责人决定 Q2 情况 A）：银行 → 支付宝理财的同一笔钱，两边都保留且都归为中性', async () => {
+    const { findCrossSourceDuplicates } = await import('../src/verify.ts');
+    const cmb = await run('.pdf');
+    const ali = await run('.csv');
+    const cfg = buildConfig();
+    const pairs = findCrossSourceDuplicates(cmb.r.records, ali.r.records, '招商银行');
+    expect(pairs.length).toBeGreaterThanOrEqual(2);
+    for (const p of pairs) {
+      expect(classify({ ...p.bank, source: 'cmb-pdf', holderName: cmb.r.meta.holderName, categoryHint: null }, cfg).direction).toBe('neutral');
+      expect(classify({ ...p.platform, source: 'alipay-csv', categoryHint: '投资理财' }, cfg).direction).toBe('neutral');
+    }
+  });
+
+  it('招行：京东白条等还款被归为支出（Q1）', async () => {
+    const { results } = await run('.pdf');
+    expect(results.filter((x) => x.categoryKey === 'expense.repay').length).toBeGreaterThan(0);
+    expect(results.some((x) => x.categoryKey?.startsWith('neutral.repay'))).toBe(false);
   });
 
   it('所有自动分类结果的分类组都与最终方向一致', async () => {
