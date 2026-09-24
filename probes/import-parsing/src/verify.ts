@@ -13,11 +13,13 @@ export interface CheckIssue {
 }
 
 /**
- * 各平台汇总的统计口径：哪些状态的记录"计入笔数但不计入金额"。
- * 支付宝：实测"交易关闭"的记录计入了笔数，但金额不计入汇总（样本中差额恰为该笔的 9 分）。
+ * 各平台汇总的统计口径：哪些状态的记录金额要从"支出"汇总中扣除。
+ * 支付宝（P0-1d 用 6 份文件验证）：全部记录（含"交易关闭"）都计入笔数和金额，
+ * 但"退款成功"（记为不计收支）的金额会从支出汇总中扣除。
+ * 注：P0-1 最初推测为"交易关闭不计入金额"，当时的单份样本恰好两种口径都成立，后被多份样本推翻。
  */
-const EXCLUDED_FROM_AMOUNT: Partial<Record<ParseResult['source'], string[]>> = {
-  alipay: ['交易关闭'],
+const REFUND_STATUSES: Partial<Record<ParseResult['source'], string[]>> = {
+  alipay: ['退款成功'],
 };
 
 /** 按方向累加笔数和金额，与文件汇总逐项比对 */
@@ -31,8 +33,9 @@ export function checkSummary(result: ParseResult): CheckIssue[] {
     const expected = summary[dir];
     if (!expected) continue;
     const rows = records.filter((r) => r.direction === dir);
-    const excluded = EXCLUDED_FROM_AMOUNT[result.source] ?? [];
-    const cents = rows.filter((r) => !excluded.includes(r.status ?? '')).reduce((s, r) => s + r.amountCents, 0);
+    const refundStatuses = REFUND_STATUSES[result.source] ?? [];
+    const refunds = records.filter((r) => refundStatuses.includes(r.status ?? '')).reduce((s, r) => s + r.amountCents, 0);
+    const cents = rows.reduce((s, r) => s + r.amountCents, 0) - (dir === 'expense' ? refunds : 0);
     if (rows.length !== expected.count) issues.push({ check: `${dir} 笔数`, detail: `声明 ${expected.count}，实际 ${rows.length}` });
     if (cents !== expected.cents) issues.push({ check: `${dir} 金额`, detail: `声明 ${expected.cents} 分，实际 ${cents} 分，差 ${cents - expected.cents} 分` });
   }

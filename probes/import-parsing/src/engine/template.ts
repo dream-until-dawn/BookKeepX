@@ -69,6 +69,9 @@ export const templateSchema = z
       timezone: z.string().default('Asia/Shanghai'),
     }),
 
+    /** 0 元交易的处理：error = 视为解析错误（默认）；skip = 跳过并记录原因（支付宝有全额优惠、医保全额支付等 0 元记录） */
+    zeroAmount: z.enum(['error', 'skip']).default('error'),
+
     /** 允许的币种；为空表示不校验 */
     acceptCurrencies: z.array(z.string()).default([]),
 
@@ -91,8 +94,12 @@ export const templateSchema = z
             total: z.string().includes('{n}', { message: 'total 必须包含 {n} 占位符' }).optional(),
             /** 方向 → 汇总行标签，引擎按 "标签：N笔 X元" 提取 */
             labels: z.partialRecord(directionEnum, z.string()).default({}),
-            /** 被 status.skip 跳过的记录是否仍计入汇总笔数（支付宝实测：是） */
+            /** 跳过的记录（0 元、状态过滤）是否仍计入汇总笔数（支付宝实测：是） */
             countIncludesSkipped: z.boolean().default(false),
+            /** 跳过的记录是否仍计入汇总金额（支付宝实测：是，"交易关闭"也计入） */
+            amountIncludesSkipped: z.boolean().default(false),
+            /** 这些状态的记录金额会从支出汇总中扣除（支付宝实测："退款成功"） */
+            refundStatuses: z.array(z.string()).default([]),
           })
           .optional(),
       })

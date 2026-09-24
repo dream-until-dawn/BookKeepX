@@ -19,8 +19,8 @@ export interface EngineResult {
   templateVersion: number;
   /** 可入账的记录 */
   records: (ParsedRecord & { categoryHint: string | null })[];
-  /** 按 status.skip 跳过的记录（保留下来用于汇总口径与预览展示） */
-  skipped: ParsedRecord[];
+  /** 跳过的记录（0 元、按状态过滤）；保留下来用于汇总口径与预览展示 */
+  skipped: (ParsedRecord & { skipReason: string })[];
   /** 无法解析的行 */
   errors: RowError[];
   summary: FileSummary;
@@ -74,7 +74,7 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Infinity):
   const get = (row: Cell[], i: number) => (i >= 0 ? row[i] : undefined);
 
   const records: EngineResult['records'] = [];
-  const skipped: ParsedRecord[] = [];
+  const skipped: EngineResult['skipped'] = [];
   const errors: RowError[] = [];
 
   table.rows.slice(0, maxRows).forEach((row, ri) => {
@@ -101,7 +101,9 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Infinity):
         direction = inc !== null ? 'income' : 'expense';
         cents = Math.abs(yuanToCents((inc ?? exp)!));
       }
-      if (cents <= 0) throw new Error('金额应为正数');
+      // 0 元交易（全额优惠、医保全额支付等）：模板允许时跳过并记录原因，否则视为解析错误
+      if (cents === 0 && t.zeroAmount !== 'skip') throw new Error('金额为 0');
+      if (cents < 0) throw new Error('金额应为正数');
 
       // ② 币种
       const currency = text(get(row, idx.currency));
@@ -121,8 +123,9 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Infinity):
         ...(balanceText !== null ? { balanceCents: yuanToCents(balanceText) } : {}),
       };
 
-      // ③ 状态过滤
-      if (t.status && rec.status && t.status.skip.includes(rec.status)) skipped.push(rec);
+      // ③ 跳过：0 元交易、按状态过滤（如"交易关闭"）。保留在 skipped 中，供汇总比对与预览展示
+      if (cents === 0) skipped.push({ ...rec, skipReason: '金额为 0' });
+      else if (t.status && rec.status && t.status.skip.includes(rec.status)) skipped.push({ ...rec, skipReason: `状态为「${rec.status}」` });
       else records.push(rec);
     } catch (e) {
       errors.push({ row: table.rowLabels[ri] ?? `#${ri}`, message: (e as Error).message });
@@ -144,14 +147,18 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Infinity):
       if (!summary[dir]) issues.push({ check: '汇总缺失', detail: `模板声明了 "${label}" 汇总行，但文件中未找到` });
     }
 
+    // 平台汇总的统计口径由模板声明（支付宝实测口径见 docs/probes/p0-1d-*.md）
     const counted = sumCfg.countIncludesSkipped ? [...records, ...skipped] : records;
+    const summed = sumCfg.amountIncludesSkipped ? [...records, ...skipped] : records;
+    const refundCents = summed.filter((r) => sumCfg.refundStatuses.includes(r.status ?? '')).reduce((s, r) => s + r.amountCents, 0);
     if (summary.total !== undefined && summary.total !== counted.length)
       issues.push({ check: '总笔数', detail: `文件声明 ${summary.total} 笔，解析 ${counted.length} 笔` });
     for (const dir of ['income', 'expense', 'neutral'] as Direction[]) {
       const exp = summary[dir];
       if (!exp) continue;
       const n = counted.filter((r) => r.direction === dir).length;
-      const c = records.filter((r) => r.direction === dir).reduce((s, r) => s + r.amountCents, 0);
+      // 支出汇总扣除退款：平台把退款记为中性，但在支出汇总里做了冲减
+      const c = summed.filter((r) => r.direction === dir).reduce((s, r) => s + r.amountCents, 0) - (dir === 'expense' ? refundCents : 0);
       if (n !== exp.count) issues.push({ check: `${dir} 笔数`, detail: `声明 ${exp.count}，解析 ${n}` });
       if (c !== exp.cents) issues.push({ check: `${dir} 金额`, detail: `声明 ${exp.cents} 分，解析 ${c} 分` });
     }

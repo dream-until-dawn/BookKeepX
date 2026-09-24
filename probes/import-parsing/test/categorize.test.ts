@@ -1,8 +1,8 @@
 /**
  * P0-1c 测试：统一分类 + 自动分类规则
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { hasSamples, primary } from './samples.ts';
 import { describe, expect, it } from 'vitest';
 import { buildConfig, classify, loadRules, normalize, type Classifiable, type Rule } from '../src/categorize/index.ts';
 import { detect, loadBuiltinTemplates, parseWith, readDoc } from '../src/engine/index.ts';
@@ -156,14 +156,12 @@ describe('规则与配置校验（反向）', () => {
 });
 
 // ───────────────────────── 真实样本 ─────────────────────────
-const SAMPLES = join(import.meta.dirname, '../../../samples');
-const hasSamples = existsSync(SAMPLES) && readdirSync(SAMPLES).length >= 3;
 
 describe.skipIf(!hasSamples)('真实样本分类', () => {
   const templates = loadBuiltinTemplates();
   const run = async (ext: string) => {
-    const name = readdirSync(SAMPLES).find((n) => n.endsWith(ext))!;
-    const doc = await readDoc(readFileSync(join(SAMPLES, name)));
+    const name = primary(ext === '.xlsx' ? 'wechat' : ext === '.csv' ? 'alipay' : 'cmb');
+    const doc = await readDoc(readFileSync(name));
     const d = detect(doc, name, templates);
     if (d.kind !== 'auto') throw new Error('识别失败');
     const r = parseWith(doc, templates.find((t) => t.id === d.templateId)!);

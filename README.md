@@ -17,6 +17,7 @@
 - 探针结论
   - [P0-1 账单解析](docs/probes/p0-1-import-parsing.md)
   - [P0-1b/1c 解析模板体系与统一分类](docs/probes/p0-1bc-templates-and-categories.md)
+  - [P0-1d 多份历史样本验证](docs/probes/p0-1d-more-samples.md)
 
 ## 技术栈（提议中）
 

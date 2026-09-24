@@ -5,8 +5,8 @@
  *   2. 识别：真实样本"识别矩阵"——每份样本只被自己的模板自动选中；无关文件不被误选
  *   3. 自定义模板：用一份用户定义的 split 模式模板解析合成的银行 csv，证明"不写代码接入新银行"可行
  */
-import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { readFileSync } from 'node:fs';
+import { currentFormatSamples, hasSamples, legacySamples, primary } from './samples.ts';
 import iconv from 'iconv-lite';
 import { describe, expect, it } from 'vitest';
 import { detect, loadBuiltinTemplates, loadTemplate, parseWith, readDoc } from '../src/engine/index.ts';
@@ -94,6 +94,46 @@ describe('识别（合成数据）', () => {
   });
 });
 
+describe('支付宝模板：汇总口径与 0 元交易（合成数据）', () => {
+  /** 构造最小的支付宝 csv；前言带汇总 */
+  const alipayCsv = (rows: string[], summary: string[]) =>
+    iconv.encode(
+      ['导出信息：', `共${rows.length}笔记录`, ...summary, '交易时间,交易分类,交易对方,对方账号,商品说明,收/支,金额,收/付款方式,交易状态,交易订单号,商家订单号,备注,', ...rows].join('\r\n'),
+      'gbk',
+    );
+  const row = (amount: string, dir: string, status: string, id: string) => `2026-09-01 12:00:00,餐饮美食,某店,/,商品,${dir},${amount},余额宝,${status},${id}\t,\t,,`;
+  const parse = async (rows: string[], summary: string[]) => parseWith(await readDoc(alipayCsv(rows, summary)), byId('alipay-csv'));
+
+  it('正向：交易关闭计入金额、退款从支出扣除 —— 与支付宝汇总一致', async () => {
+    const r = await parse(
+      [row('32.50', '支出', '交易成功', '1'), row('0.09', '支出', '交易关闭', '2'), row('2.00', '不计收支', '退款成功', '3'), row('100.00', '不计收支', '交易关闭', '4')],
+      ['收入：0笔 0.00元', '支出：2笔 30.59元', '不计收支：2笔 102.00元'],
+    );
+    expect(r.issues).toEqual([]);
+    // 交易关闭的记录被跳过，不入账
+    expect(r.records.map((x) => x.status)).toEqual(['交易成功', '退款成功']);
+    expect(r.skipped.map((x) => x.skipReason)).toEqual(['状态为「交易关闭」', '状态为「交易关闭」']);
+  });
+
+  it('反向：退款没有从支出扣除的汇总 → 报支出金额不符', async () => {
+    const r = await parse([row('32.50', '支出', '交易成功', '1'), row('2.00', '不计收支', '退款成功', '3')], ['收入：0笔 0.00元', '支出：1笔 32.50元', '不计收支：1笔 2.00元']);
+    expect(r.issues).toEqual([expect.objectContaining({ check: 'expense 金额' })]);
+  });
+
+  it('正向：0 元交易（全额优惠 / 医保全额）被跳过并注明原因，仍计入笔数', async () => {
+    const r = await parse([row('32.50', '支出', '交易成功', '1'), row('0.00', '支出', '支付成功', '2')], ['收入：0笔 0.00元', '支出：2笔 32.50元', '不计收支：0笔 0.00元']);
+    expect(r.issues).toEqual([]);
+    expect(r.records).toHaveLength(1);
+    expect(r.skipped[0]!.skipReason).toBe('金额为 0');
+  });
+
+  it('反向：模板未允许跳过 0 元时（默认），0 元交易是解析错误', async () => {
+    const strict = loadTemplate({ ...byId('alipay-csv'), zeroAmount: 'error' });
+    const r = parseWith(await readDoc(alipayCsv([row('0.00', '支出', '支付成功', '2')], [])), strict);
+    expect(r.errors[0]!.message).toMatch(/金额为 0/);
+  });
+});
+
 describe('自定义模板解析（合成数据）', () => {
   const t = loadTemplate(customBankTemplate);
 
@@ -131,47 +171,45 @@ describe('自定义模板解析（合成数据）', () => {
 });
 
 // ───────────────────────── 3. 真实样本识别矩阵 ─────────────────────────
-const SAMPLES = join(import.meta.dirname, '../../../samples');
-const hasSamples = existsSync(SAMPLES) && readdirSync(SAMPLES).length >= 3;
-const EXPECT: Record<string, string> = { '.xlsx': 'wechat-xlsx', '.csv': 'alipay-csv', '.pdf': 'cmb-pdf' };
-
 describe.skipIf(!hasSamples)('真实样本识别矩阵', () => {
-  for (const [ext, expectedId] of Object.entries(EXPECT)) {
-    it(`${ext} → 只自动选中 ${expectedId}，且解析自校验通过`, async () => {
-      const name = readdirSync(SAMPLES).find((n) => n.endsWith(ext))!;
-      const doc = await readDoc(readFileSync(join(SAMPLES, name)));
-      const d = detect(doc, name, builtins);
-      expect(d).toMatchObject({ kind: 'auto', templateId: expectedId });
-      expect(parseWith(doc, byId(expectedId)).issues).toEqual([]);
+  // 全部新版格式样本：每份只被自己的模板自动选中，且自校验通过
+  for (const s of hasSamples ? currentFormatSamples() : []) {
+    it(`${s.name} → 自动选中 ${s.expected}，自校验通过`, async () => {
+      const doc = await readDoc(readFileSync(s.path));
+      expect(detect(doc, s.name, builtins)).toMatchObject({ kind: 'auto', templateId: s.expected });
+      expect(parseWith(doc, byId(s.expected)).issues).toEqual([]);
     });
 
-    it(`${ext} → 改名成无意义文件名后仍能识别（不依赖文件名）`, async () => {
-      const name = readdirSync(SAMPLES).find((n) => n.endsWith(ext))!;
-      const d = detect(await readDoc(readFileSync(join(SAMPLES, name))), `download${ext}`, builtins);
-      expect(d).toMatchObject({ kind: 'auto', templateId: expectedId });
+    it(`${s.name} → 改名成无意义文件名后仍能识别（不依赖文件名）`, async () => {
+      const ext = s.name.slice(s.name.lastIndexOf('.'));
+      expect(detect(await readDoc(readFileSync(s.path)), `download${ext}`, builtins)).toMatchObject({ kind: 'auto', templateId: s.expected });
+    });
+  }
+
+  // 旧版格式（不兼容）：必须不被自动选用 —— 宁可让用户选或自定义，也不能用错模板静默导入
+  for (const s of hasSamples ? legacySamples() : []) {
+    it(`旧版格式 ${s.name} → 不自动选用任何模板`, async () => {
+      expect(detect(await readDoc(readFileSync(s.path)), s.name, builtins).kind).not.toBe('auto');
     });
   }
 
   it('反向：模板声明的汇总行在文件里找不到 → 报"汇总缺失"，而不是静默跳过比对', async () => {
-    const name = readdirSync(SAMPLES).find((n) => n.endsWith('.csv'))!;
     const base = byId('alipay-csv');
     const tampered = loadTemplate({ ...base, verify: { summary: { ...base.verify.summary!, total: '合计{n}条' } } });
-    const r = parseWith(await readDoc(readFileSync(join(SAMPLES, name))), tampered);
+    const r = parseWith(await readDoc(readFileSync(primary('alipay'))), tampered);
     expect(r.issues).toEqual([expect.objectContaining({ check: '汇总缺失' })]);
   });
 
   it('反向：模板声明的分方向汇总标签在文件里找不到 → 报"汇总缺失"', async () => {
-    const name = readdirSync(SAMPLES).find((n) => n.endsWith('.csv'))!;
     const base = byId('alipay-csv');
     const tampered = loadTemplate({ ...base, verify: { summary: { ...base.verify.summary!, labels: { expense: '支出合计' } } } });
-    const r = parseWith(await readDoc(readFileSync(join(SAMPLES, name))), tampered);
+    const r = parseWith(await readDoc(readFileSync(primary('alipay'))), tampered);
     expect(r.issues).toEqual([expect.objectContaining({ check: '汇总缺失' })]);
   });
 
   it('反向：把模板的标题指纹改掉 → 支付宝样本不再被自动选中', async () => {
-    const name = readdirSync(SAMPLES).find((n) => n.endsWith('.csv'))!;
     const tampered = loadTemplate({ ...byId('alipay-csv'), fingerprint: { titleKeywords: ['不存在的关键词'], fileNameKeywords: [] } });
-    const d = detect(await readDoc(readFileSync(join(SAMPLES, name))), 'x.csv', [tampered]);
+    const d = detect(await readDoc(readFileSync(primary('alipay'))), 'x.csv', [tampered]);
     expect(d.kind).toBe('choose');
   });
 });
