@@ -72,6 +72,8 @@ describe('上传与预览', () => {
     );
     expect(importBatchSchema.parse(b)).toMatchObject({
       status: 'previewing',
+      // 中文文件名原样保存
+      fileName: NAME,
       templateId: 'alipay-csv',
       templateName: '支付宝交易明细（csv）',
       accountId: acc.id,

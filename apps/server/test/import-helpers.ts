@@ -9,7 +9,7 @@ import type { TestUser } from './api-helpers.ts';
 
 type App = ReturnType<typeof buildApp>;
 
-/** 以 multipart/form-data 上传一个文件（可附带普通字段） */
+/** 以 multipart/form-data 上传一个文件（可附带普通字段）；文件名按 UTF-8 原样发送，与浏览器一致 */
 export function upload(app: App, user: TestUser, bytes: Buffer, fileName: string, fields: Record<string, string> = {}) {
   const boundary = `----bkx${Math.random().toString(16).slice(2)}`;
   const parts: Buffer[] = [];
@@ -18,7 +18,7 @@ export function upload(app: App, user: TestUser, bytes: Buffer, fileName: string
   }
   parts.push(
     Buffer.from(
-      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${encodeURIComponent(fileName)}"\r\nContent-Type: application/octet-stream\r\n\r\n`,
+      `--${boundary}\r\nContent-Disposition: form-data; name="file"; filename="${fileName}"\r\nContent-Type: application/octet-stream\r\n\r\n`,
     ),
     bytes,
     Buffer.from(`\r\n--${boundary}--\r\n`),
