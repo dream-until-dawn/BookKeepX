@@ -40,6 +40,7 @@ pnpm test         # 全部测试（服务端测试需要 pnpm db:up）
   - [ADR-0006 多账本](docs/adr/0006-ledgers.md)
 - [数据模型](docs/data-model.md)
 - [鉴权设计](docs/auth.md)
+- [接口约定](docs/api.md)
 - 探针结论
   - [P0-1 账单解析](docs/probes/p0-1-import-parsing.md)
   - [P0-1b/1c 解析模板体系与统一分类](docs/probes/p0-1bc-templates-and-categories.md)

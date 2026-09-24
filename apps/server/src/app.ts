@@ -7,12 +7,15 @@
 import cookie from '@fastify/cookie';
 import Fastify from 'fastify';
 import type { Database } from './db/client.ts';
+import { accountRoutes } from './modules/accounts/routes.ts';
 import { type AuthLimiters, createAuthLimiters } from './modules/auth/rate-limit.ts';
 import { authRoutes } from './modules/auth/routes.ts';
+import { categoryRoutes } from './modules/categories/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
 import { registerAuth } from './plugins/auth.ts';
 import { registerCsrfGuard } from './plugins/csrf.ts';
 import { registerErrorHandler } from './plugins/error-handler.ts';
+import { registerLedgerScope } from './plugins/ledger-scope.ts';
 
 export interface AppDeps {
   database: Database;
@@ -36,8 +39,11 @@ export function buildApp(deps: AppDeps) {
   app.register(cookie);
   registerCsrfGuard(app);
   registerAuth(app, { db, clock, secureCookie });
+  registerLedgerScope(app, db);
 
   healthRoutes(app, deps);
   authRoutes(app, { db, clock, secureCookie, limiters: deps.limiters ?? createAuthLimiters(clock) });
+  categoryRoutes(app, db);
+  accountRoutes(app, db);
   return app;
 }
