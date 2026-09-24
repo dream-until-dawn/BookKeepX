@@ -1,0 +1,15 @@
+{
+  "alipay-csv": {
+    "交通出行": "expense.transport", "餐饮美食": "expense.food", "日用百货": "expense.shopping.daily",
+    "服饰装扮": "expense.shopping.clothing", "数码电器": "expense.shopping.digital", "家居家装": "expense.shopping.home",
+    "美容美发": "expense.beauty", "医疗健康": "expense.health", "文化休闲": "expense.entertainment",
+    "教育培训": "expense.education", "保险": "expense.insurance", "充值缴费": "expense.telecom.phone",
+    "住房物业": "expense.housing", "转账红包": "expense.social", "投资理财": "neutral.invest", "退款": "income.refund"
+  },
+  "wechat-xlsx": {
+    "微信红包": "income.redpacket"
+  },
+  "cmb-pdf": {
+    "代发工资": "income.salary", "账户结息": "income.interest", "快捷退款": "income.refund", "朝朝宝转出": "neutral.invest"
+  }
+}

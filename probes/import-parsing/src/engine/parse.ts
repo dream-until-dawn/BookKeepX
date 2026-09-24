@@ -26,6 +26,8 @@ export interface EngineResult {
   summary: FileSummary;
   /** 自校验问题；为空才允许入库 */
   issues: CheckIssue[];
+  /** 从说明文字中提取的元信息（如户主姓名） */
+  meta: { holderName?: string };
 }
 
 const TIME_RE: Record<ImportTemplate['time']['format'], RegExp> = {
@@ -156,5 +158,13 @@ export function parseTable(table: Table, t: ImportTemplate, maxRows = Infinity):
   }
   if (t.verify.balanceChain) issues.push(...checkBalanceChain(records));
 
-  return { templateId: t.id, templateVersion: t.version, records, skipped, errors, summary, issues };
+  // ⑤ 说明文字中的元信息
+  const meta: EngineResult['meta'] = {};
+  if (t.preambleFields.holderName) {
+    const [before, after] = t.preambleFields.holderName.split('{v}') as [string, string];
+    const m = new RegExp(`${escapeRegExp(before)}\\s*(\\S+?)\\s*${after ? escapeRegExp(after) : '(?:\\s|$)'}`, 'm').exec(table.preamble);
+    if (m) meta.holderName = m[1];
+  }
+
+  return { templateId: t.id, templateVersion: t.version, records, skipped, errors, summary, issues, meta };
 }

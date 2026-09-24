@@ -61,7 +61,8 @@ BookKeepX/
 │  ├─ core/                领域核心（纯 TS）
 │  │  └─ src/
 │  │     ├─ money/         金额：分 ↔ 元、格式化、解析
-│  │     ├─ importers/     导入管线 + 各来源适配器（wechat / alipay / bank / template）
+│  │     ├─ importers/     导入管线：通用引擎 + templates/*.json（每个来源一份）
+│  │     ├─ categories/    预置分类树、系统规则、来源映射、规则引擎
 │  │     └─ stats/         统计口径计算
 │  └─ contracts/           API 契约（zod schema + 推导类型）
 ├─ probes/                 P0 可行性探针（一次性验证代码，不进生产）
@@ -80,8 +81,11 @@ BookKeepX/
 | `accounts` | id, user_id, name, kind(wechat/alipay/bank/cash/other) | 资金账户，"钱从哪付的" |
 | `categories` | id, user_id, parent_id, name, direction(income/expense), sort | 两级分类；注册时写入默认分类 |
 | `transactions` | id, user_id, direction(income/expense/neutral), **amount_cents(bigint, >0)**, currency, occurred_at(timestamptz), category_id, account_id, counterparty, note, source(manual/import), import_batch_id, external_id, dedupe_key, created_at, updated_at, deleted_at | 核心流水表 |
-| `import_batches` | id, user_id, source_type, file_name, file_sha256, total_rows, imported_rows, skipped_rows, status, created_at | 每次导入一条，支持整批撤销 |
-| `category_rules` | id, user_id, match_field, pattern, category_id | 导入时"对方 / 商品名 → 分类"映射，用户确认后沉淀；也是 P3 agent 自动分类的数据基础 |
+| `import_batches` | id, user_id, template_id, template_version, detect_score, file_name, file_sha256, total_rows, imported_rows, skipped_rows, status, created_at | 每次导入一条，支持整批撤销 |
+| `categories`（补充） | preset_key, group(expense/income/neutral), hidden | 系统预置分类树复制给每个用户，见 [ADR-0004](./adr/0004-categories-and-rules.md) |
+| `category_rules` | id, user_id, name, enabled, priority, match, conditions(jsonb), action(jsonb), hit_count | 声明式分类规则（无正则），见 ADR-0004；也是 P3 agent 自动分类的产出形式 |
+| `source_hint_mappings` | user_id(可空=系统), source, hint, category_key | 来源原生分类 → 我们的分类 |
+| `import_templates` | id, user_id, name, file_type, version, definition(jsonb) | 用户自定义解析模板，见 [ADR-0003](./adr/0003-import-templates.md) |
 
 约束要点：
 - 金额一律**正整数"分"**，方向由 `direction` 表达（见 [ADR-0002](./adr/0002-money-as-integer-cents.md)）；
@@ -96,20 +100,20 @@ BookKeepX/
 ```
 上传文件
   └─► ① 解码：xlsx → 工作表；csv → 识别编码（UTF-8 / UTF-8-BOM / GBK）；PDF → 带坐标的文字块
-  └─► ② 识别来源：每个适配器实现 detect(sheet) 打分，取最高分；都不认识 → 走通用"字段映射"
-  └─► ③ 解析：适配器把行转成 RawRecord（保留原始列，便于排错）
+  └─► ② 识别模板：内置模板 + 用户自定义模板逐个打分；高置信自动选用，否则让用户选或自定义（ADR-0003）
+  └─► ③ 解析：通用引擎按模板把行转成 RawRecord（保留原始列，便于排错）
   └─► ④ 规范化：RawRecord → TransactionDraft（金额转分、墙上时间转 timestamptz、方向判定含 neutral、按状态过滤如"交易关闭"）
   └─► ④' 自校验（质量门槛）：与文件自带汇总比对 / 银行余额链校验；不通过则拒绝导入并指出问题
-  └─► ⑤ 去重 + 分类建议：同来源按单号 / 去重键；**跨来源**（银行 ↔ 支付宝 / 微信）按同日 + 同额 + 支付方式提示疑似重复；套用 category_rules 与平台自带分类
+  └─► ⑤ 去重 + 自动分类：同来源按单号 / 去重键；**跨来源**（银行 ↔ 支付宝 / 微信）按同日 + 同额 + 支付方式提示疑似重复；分类按 手动 > 用户规则 > 系统规则 > 来源映射 的决策链（ADR-0004）
   └─► ⑥ 预览：返回给前端，用户可改分类、剔除行
   └─► ⑦ 提交：一个数据库事务内写入 import_batches + transactions
 ```
 
 - ①–④ 全部在 `packages/core`，纯函数，用脱敏样本文件做夹具测试；
 - 解析在**服务端**执行（权威、可审计）；core 的同构特性保留了以后"前端离线预览"的可能；
-- 适配器接口：`{ id, detect(input): number, parse(input): RawRecord[], normalize(raw): Result<TransactionDraft, ImportError>, verify(records, fileMeta): Issue[] }`。
+- 解析逻辑 = **一套通用引擎 + 每个来源一份声明式 JSON 模板**；接入新银行 = 新增模板 + 样本测试，不写代码（ADR-0003）。
 
-各来源已验证的格式细节见 [P0-1 探针结论](./probes/p0-1-import-parsing.md)。
+各来源已验证的格式细节见 [P0-1](./probes/p0-1-import-parsing.md)、[P0-1b/1c](./probes/p0-1bc-templates-and-categories.md) 探针结论。
 
 ## 6. 鉴权与安全
 

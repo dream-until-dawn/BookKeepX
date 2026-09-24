@@ -4,25 +4,84 @@
   "name": "支付宝交易明细（csv）",
   "fileType": "csv",
   "encoding": "auto",
-  "fingerprint": { "titleKeywords": ["支付宝账户", "电子客户回单"], "fileNameKeywords": ["支付宝交易明细"] },
-  "header": { "required": ["交易时间", "交易分类", "交易对方", "收/支", "金额", "交易状态", "交易订单号"] },
-  "columns": {
-    "occurredAt": ["交易时间"],
-    "amount": ["金额"],
-    "counterparty": ["交易对方"],
-    "description": ["商品说明"],
-    "externalId": ["交易订单号"],
-    "paymentMethod": ["收/付款方式"],
-    "categoryHint": ["交易分类"]
+  "fingerprint": {
+    "titleKeywords": [
+      "支付宝账户",
+      "电子客户回单"
+    ],
+    "fileNameKeywords": [
+      "支付宝交易明细"
+    ]
   },
-  "amount": { "mode": "directionColumn", "column": ["收/支"], "map": { "收入": "income", "支出": "expense", "不计收支": "neutral" } },
-  "status": { "column": ["交易状态"], "skip": ["交易关闭"] },
-  "time": { "format": "yyyy-MM-dd HH:mm:ss", "timezone": "Asia/Shanghai" },
+  "header": {
+    "required": [
+      "交易时间",
+      "交易分类",
+      "交易对方",
+      "收/支",
+      "金额",
+      "交易状态",
+      "交易订单号"
+    ]
+  },
+  "columns": {
+    "occurredAt": [
+      "交易时间"
+    ],
+    "amount": [
+      "金额"
+    ],
+    "counterparty": [
+      "交易对方"
+    ],
+    "description": [
+      "商品说明"
+    ],
+    "externalId": [
+      "交易订单号"
+    ],
+    "paymentMethod": [
+      "收/付款方式"
+    ],
+    "categoryHint": [
+      "交易分类"
+    ]
+  },
+  "amount": {
+    "mode": "directionColumn",
+    "column": [
+      "收/支"
+    ],
+    "map": {
+      "收入": "income",
+      "支出": "expense",
+      "不计收支": "neutral"
+    }
+  },
+  "status": {
+    "column": [
+      "交易状态"
+    ],
+    "skip": [
+      "交易关闭"
+    ]
+  },
+  "time": {
+    "format": "yyyy-MM-dd HH:mm:ss",
+    "timezone": "Asia/Shanghai"
+  },
   "verify": {
     "summary": {
       "total": "共{n}笔记录",
-      "labels": { "income": "收入", "expense": "支出", "neutral": "不计收支" },
+      "labels": {
+        "income": "收入",
+        "expense": "支出",
+        "neutral": "不计收支"
+      },
       "countIncludesSkipped": true
     }
+  },
+  "preambleFields": {
+    "holderName": "姓名：{v}"
   }
 }

@@ -72,6 +72,12 @@ export const templateSchema = z
     /** 允许的币种；为空表示不校验 */
     acceptCurrencies: z.array(z.string()).default([]),
 
+    /**
+     * 从表头之前的说明文字中提取的字段，用 {v} 标记取值位置（取到行尾或空白为止）。
+     * 目前用于提取户主姓名：对方是户主本人的转账，是"自己账户间转账"，不应计入收支。
+     */
+    preambleFields: z.object({ holderName: z.string().includes('{v}').optional() }).strict().default({}),
+
     /** 视为空值的记号 */
     nullTokens: z.array(z.string()).default(['', '/']),
 
