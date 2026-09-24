@@ -11,7 +11,19 @@ const directionEnum = z.enum(['income', 'expense', 'neutral']);
 /** 列名别名列表：任一别名命中即可，兼容平台改版改列名 */
 const columnRef = z.array(z.string().min(1)).min(1);
 
-export const TIME_FORMATS = ['yyyy-MM-dd HH:mm:ss', 'yyyy-MM-dd', 'yyyy/MM/dd HH:mm:ss', 'yyyy/MM/dd'] as const;
+/**
+ * 支持的时间格式
+ * - 前四种是严格格式（内置模板使用）：月、日、时、分、秒都是两位
+ * - "yyyy-M-d H:mm"、"yyyy/M/d H:mm" 是宽松格式：月、日、时可以不补零，秒可以省略（如旧版支付宝的 "2021/12/31 8:54"）
+ */
+export const TIME_FORMATS = [
+  'yyyy-MM-dd HH:mm:ss',
+  'yyyy-MM-dd',
+  'yyyy/MM/dd HH:mm:ss',
+  'yyyy/MM/dd',
+  'yyyy-M-d H:mm',
+  'yyyy/M/d H:mm',
+] as const;
 
 export const templateSchema = z
   .object({

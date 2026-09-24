@@ -65,6 +65,8 @@ const TIME_RE: Record<ImportTemplate['time']['format'], RegExp> = {
   'yyyy-MM-dd': /^(\d{4})-(\d{2})-(\d{2})$/,
   'yyyy/MM/dd HH:mm:ss': /^(\d{4})\/(\d{2})\/(\d{2}) (\d{2}):(\d{2}):(\d{2})$/,
   'yyyy/MM/dd': /^(\d{4})\/(\d{2})\/(\d{2})$/,
+  'yyyy-M-d H:mm': /^(\d{4})-(\d{1,2})-(\d{1,2}) (\d{1,2}):(\d{2})(?::(\d{2}))?$/,
+  'yyyy/M/d H:mm': /^(\d{4})\/(\d{1,2})\/(\d{1,2}) (\d{1,2}):(\d{2})(?::(\d{2}))?$/,
 };
 
 const pad = (n: number) => String(n).padStart(2, '0');
@@ -82,9 +84,12 @@ function toWall(c: Cell, format: ImportTemplate['time']['format']): { wall: stri
   const m = TIME_RE[format].exec(s);
   if (!m) throw new Error(`时间 "${s}" 不符合格式 ${format}`);
   const [, y, mo, d, h, mi, se] = m;
+  // 宽松格式的月、日、时可能是一位数，统一补零；省略的秒按 00
+  const two = (x: string | undefined) => (x ?? '0').padStart(2, '0');
+  const date = `${y}-${two(mo)}-${two(d)}`;
   return h === undefined
-    ? { wall: `${y}-${mo}-${d}T00:00:00`, precision: 'day' }
-    : { wall: `${y}-${mo}-${d}T${h}:${mi}:${se}`, precision: 'second' };
+    ? { wall: `${date}T00:00:00`, precision: 'day' }
+    : { wall: `${date}T${two(h)}:${mi}:${two(se)}`, precision: 'second' };
 }
 
 /** 转义正则元字符，保证模板里的文字只按字面匹配 */
