@@ -115,7 +115,7 @@ describe('分类管理页', () => {
 
   it('正向：添加一级分类 → 发送正确的请求体', async () => {
     const calls = mockServer((m, url, body) =>
-      m === 'POST' ? { status: 201, body: cat(7, body as object) } : listHandler(m, url),
+      m === 'POST' ? { status: 201, body: cat(7, body as Record<string, unknown>) } : listHandler(m, url),
     );
     renderAt('/categories');
     const input = await screen.findByLabelText('添加一级分类');
@@ -205,7 +205,7 @@ describe('资金账户页', () => {
 
   it('正向：添加银行卡 → 请求体包含卡号后四位，空的机构传 null', async () => {
     const calls = mockServer((m, url, body) =>
-      m === 'POST' ? { status: 201, body: account(1, body as object) } : listOf([])(m, url),
+      m === 'POST' ? { status: 201, body: account(1, body as Record<string, unknown>) } : listOf([])(m, url),
     );
     renderAt('/accounts');
     fireEvent.change(await screen.findByLabelText('名称'), { target: { value: '招行储蓄卡' } });
