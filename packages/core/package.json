@@ -1,0 +1,12 @@
+{
+  "name": "@bookkeepx/core",
+  "private": true,
+  "type": "module",
+  "description": "领域核心：金额、导入解析、分类规则、统计口径（纯函数，不依赖框架与 IO）",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json"
+  }
+}

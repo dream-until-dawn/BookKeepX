@@ -18,3 +18,6 @@ samples/
 .idea/
 .DS_Store
 Thumbs.db
+
+# 本机工具配置（Claude 桌面端预览等），不入库
+.claude/

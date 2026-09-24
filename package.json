@@ -1,0 +1,26 @@
+{
+  "name": "bookkeepx",
+  "private": true,
+  "type": "module",
+  "description": "BookKeepX：记账 agent 的 Web / App 应用",
+  "packageManager": "pnpm@12.5.1",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "dev": "pnpm --parallel --filter @bookkeepx/server --filter @bookkeepx/web dev",
+    "check": "biome check .",
+    "check:fix": "biome check --write .",
+    "typecheck": "pnpm -r typecheck",
+    "test": "vitest run",
+    "db:up": "docker compose -f docker/compose.dev.yaml up -d --wait",
+    "db:down": "docker compose -f docker/compose.dev.yaml down",
+    "db:migrate": "pnpm --filter @bookkeepx/server db:migrate"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.14",
+    "@types/node": "^26.6.2",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.1"
+  }
+}

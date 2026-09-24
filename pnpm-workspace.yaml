@@ -1,0 +1,7 @@
+# 正式工程的包；probes/ 下的探针各自独立，不在此工作区内
+packages:
+  - apps/*
+  - packages/*
+# pnpm 默认拦截依赖的安装脚本（供应链安全），这里只放行确实需要的
+allowBuilds:
+  esbuild: true

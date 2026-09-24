@@ -4,6 +4,27 @@
 
 > 当前阶段：**P1 MVP 开发**（P0 已完成，见 tag `v0.0.1`）
 
+## 开发
+
+环境要求：Node.js 22+、pnpm 12、Docker。
+
+```bash
+pnpm install          # 安装依赖
+cp .env.example .env  # 首次：复制环境变量
+pnpm db:up            # 启动开发数据库（PostgreSQL 16，端口 54320；同时创建测试库）
+pnpm dev              # 同时启动服务端（3000）和前端（5173），打开 http://localhost:5173
+```
+
+提交前必须通过（CI 会同样检查）：
+
+```bash
+pnpm check        # 格式与代码检查（Biome）；pnpm check:fix 自动修复
+pnpm typecheck    # 类型检查
+pnpm test         # 全部测试（服务端测试需要 pnpm db:up）
+```
+
+目录：`apps/server` 服务端、`apps/web` 前端、`packages/core` 领域核心、`packages/contracts` 接口契约、`probes/` P0 探针（不参与正式构建）。
+
 ## 文档
 
 - [架构设计](docs/architecture.md)
