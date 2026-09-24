@@ -5,13 +5,19 @@
  * - 5xx（服务端错误）：只返回通用提示，详细信息写入日志，不把内部细节暴露给客户端。
  */
 import type { FastifyError, FastifyInstance } from 'fastify';
+import { AppError } from '../errors.ts';
 
 export interface ErrorBody {
   error: string;
+  /** 业务错误码（AppError 才有），前端据此区分处理 */
+  code?: string;
 }
 
 export function registerErrorHandler(app: FastifyInstance) {
-  app.setErrorHandler((err: FastifyError, req, reply) => {
+  app.setErrorHandler((err: FastifyError | AppError, req, reply) => {
+    if (err instanceof AppError) {
+      return reply.code(err.statusCode).send({ error: err.message, code: err.code } satisfies ErrorBody);
+    }
     const status = err.statusCode && err.statusCode >= 400 && err.statusCode < 600 ? err.statusCode : 500;
     if (status >= 500) {
       req.log.error({ err }, '未处理的服务端错误');

@@ -32,6 +32,12 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm --filter @bookkeepx/web build
+      # schema 改了却忘记生成迁移时，这里会生成新文件导致 git diff 非空 → CI 失败
+      - name: 检查数据库迁移与 schema 一致
+        run: |
+          pnpm --filter @bookkeepx/server db:generate
+          git status --porcelain apps/server/drizzle
+          test -z "$(git status --porcelain apps/server/drizzle)"
 
   test:
     name: 测试（Vitest + PostgreSQL）

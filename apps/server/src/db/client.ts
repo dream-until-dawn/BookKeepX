@@ -8,10 +8,27 @@ import { sql } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 
+export type Db = ReturnType<typeof drizzle>;
+/** 事务对象：与 Db 用法相同，但所有操作在同一个事务中 */
+export type Tx = Parameters<Parameters<Db['transaction']>[0]>[0];
+/** 既可以传普通连接也可以传事务：仓储函数统一接收它，由调用方决定是否在事务中执行 */
+export type DbOrTx = Db | Tx;
+
 export interface Database {
-  db: ReturnType<typeof drizzle>;
+  db: Db;
   /** 关闭连接池（进程退出、测试结束时调用） */
   close: () => Promise<void>;
+}
+
+/**
+ * 把数据库返回的整数（聚合结果可能是字符串或 bigint）安全地转成 JS number
+ * @throws Error 超出安全整数范围或不是整数时抛错，而不是静默丢精度（P0-2 实测发现）
+ */
+export function toSafeInt(value: unknown): number {
+  const n = typeof value === 'bigint' || typeof value === 'string' ? Number(value) : value;
+  if (typeof n !== 'number' || !Number.isSafeInteger(n))
+    throw new Error(`数据库返回的整数超出安全范围或非法：${String(value)}`);
+  return n;
 }
 
 /**
