@@ -40,6 +40,7 @@ async function request(method: string, path: string, body?: unknown): Promise<Re
       method,
       headers,
       credentials: 'same-origin',
+      cache: 'no-store',
       ...(body !== undefined ? { body: isForm ? body : JSON.stringify(body) } : {}),
     });
   } catch {

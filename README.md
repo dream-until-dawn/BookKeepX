@@ -45,6 +45,7 @@ pnpm test         # 全部测试（服务端测试需要 pnpm db:up）
 - [账单导入设计](docs/import.md)
 - [分类规则](docs/category-rules.md)
 - [统计口径与展示](docs/stats.md)
+- [PWA 安装、更新与移动端](docs/pwa.md)
 - 探针结论
   - [P0-1 账单解析](docs/probes/p0-1-import-parsing.md)
   - [P0-1b/1c 解析模板体系与统一分类](docs/probes/p0-1bc-templates-and-categories.md)

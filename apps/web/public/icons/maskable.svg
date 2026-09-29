@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>BookKeepX 自适应图标</title>
+  <rect width="512" height="512" fill="#2563eb"/>
+  <rect x="148" y="136" width="216" height="240" rx="28" fill="#fff"/>
+  <path d="M184 136v240" stroke="#bfdbfe" stroke-width="10"/>
+  <path d="M218 196h102M218 238h72" stroke="#2563eb" stroke-width="18" stroke-linecap="round"/>
+  <path d="m224 302 30 30 62-66" fill="none" stroke="#059669" stroke-width="20" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

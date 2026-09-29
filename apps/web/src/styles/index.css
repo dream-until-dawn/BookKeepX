@@ -1,1 +1,25 @@
 @import "tailwindcss";
+
+/* 独立应用与刘海屏共用安全区，不禁止缩放。 */
+body {
+  min-width: 320px;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+@media (max-width: 767px) {
+  /* 保证触控目标尺寸；16px 输入文字避免 iOS 聚焦时自动放大。 */
+  button,
+  input:not([type="checkbox"]):not([type="radio"]),
+  select {
+    min-height: 44px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]),
+  select,
+  textarea {
+    max-width: 100%;
+    font-size: 16px;
+  }
+  main {
+    min-width: 0;
+  }
+}

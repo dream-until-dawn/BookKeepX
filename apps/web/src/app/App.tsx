@@ -4,6 +4,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useState } from 'react';
 import { createBrowserRouter, RouterProvider } from 'react-router';
+import { PwaControls } from '../pwa/PwaControls.tsx';
 import { routes } from './routes.tsx';
 
 export function App() {
@@ -12,6 +13,7 @@ export function App() {
   const [router] = useState(() => createBrowserRouter(routes));
   return (
     <QueryClientProvider client={queryClient}>
+      <PwaControls />
       <RouterProvider router={router} />
     </QueryClientProvider>
   );
