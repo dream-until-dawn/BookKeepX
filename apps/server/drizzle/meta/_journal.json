@@ -8,6 +8,20 @@
       "when": 1790235369083,
       "tag": "0000_init",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1790648955949,
+      "tag": "0001_transaction_original_direction",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790649257113,
+      "tag": "0002_transaction_import_source",
+      "breakpoints": true
     }
   ]
 }

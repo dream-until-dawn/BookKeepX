@@ -11,6 +11,7 @@ const NAV = [
   { to: '/transactions', label: '流水' },
   { to: '/imports', label: '导入' },
   { to: '/categories', label: '分类' },
+  { to: '/rules', label: '规则' },
   { to: '/accounts', label: '账户' },
 ];
 

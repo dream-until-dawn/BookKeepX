@@ -19,6 +19,8 @@ export const transactionSchema = z
   .object({
     id: z.uuid(),
     direction: directionSchema,
+    /** 改向前方向，学习建议用于匹配未来原始流水；旧响应兼容缺省。 */
+    originalDirection: directionSchema.nullable().optional(),
     amountCents: positiveCentsSchema,
     occurredAt: z.string(),
     timePrecision: z.enum(['second', 'day']),

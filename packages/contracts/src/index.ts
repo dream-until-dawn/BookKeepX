@@ -35,6 +35,7 @@ export {
   type UpdateCategoryRequest,
   updateCategoryRequestSchema,
 } from './categories.ts';
+export * from './category-rules.ts';
 export { type HealthResponse, healthResponseSchema } from './health.ts';
 export {
   type CreateUserTemplateRequest,

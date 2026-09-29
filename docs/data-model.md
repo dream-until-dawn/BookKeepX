@@ -132,6 +132,7 @@ MVP **不记余额**（见待确认问题 Q2）。
 | account_id | uuid FK → accounts，可空 | 资金账户；手动记账可以不填 |
 | category_id | uuid FK → categories，可空 | 空 = 未分类 |
 | direction | 枚举：income / expense / neutral | 收入 / 支出 / 中性（不计收支） |
+| original_direction | 同 direction，可空 | 自动规则改向前方向；历史重分类恢复方向，旧数据未知时为空（P1-8） |
 | amount_cents | bigint | 金额（分），恒为正 |
 | currency | text，默认 `CNY` | 预留 |
 | occurred_at | timestamptz | 发生时间 |
@@ -142,6 +143,7 @@ MVP **不记余额**（见待确认问题 Q2）。
 | source | 枚举：manual / import | 手动记账还是导入 |
 | import_batch_id | uuid FK → import_batches，可空 | 导入批次，用于整批撤销 |
 | external_source | text，可空 | 单号所属平台，如 `wechat` / `alipay` |
+| import_source | text，可空 | 与单号无关的账单来源，供历史规则匹配；新导入始终保存（P1-8） |
 | external_id | text，可空 | 平台交易单号；与 `external_source` 组合唯一，防止重复导入 |
 | dedupe_key | text，可空 | 没有单号的银行流水用的去重键：hash(账户 + 日期 + 金额 + 交易后余额) |
 | balance_after_cents | bigint，可空 | 银行流水的交易后余额：去重、余额链校验 |
