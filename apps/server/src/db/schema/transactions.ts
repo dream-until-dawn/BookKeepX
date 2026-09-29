@@ -54,6 +54,8 @@ export const transactions = pgTable(
     accountId: uuid('account_id'),
     categoryId: uuid('category_id'),
     direction: directionEnum('direction').notNull(),
+    /** 自动规则改向前的方向；旧数据无法可靠回推时为空，历史应用保留当前方向为基线。 */
+    originalDirection: directionEnum('original_direction'),
     /** 金额（分），恒为正；mode:'number' 让 Drizzle 返回 JS number（范围由约束保证安全） */
     amountCents: bigint('amount_cents', { mode: 'number' }).notNull(),
     currency: text('currency').notNull().default('CNY'),
@@ -68,6 +70,8 @@ export const transactions = pgTable(
     source: transactionSourceEnum('source').notNull(),
     importBatchId: uuid('import_batch_id'),
     externalSource: text('external_source'),
+    /** 分类使用的账单来源，不依赖是否有外部单号。 */
+    importSource: text('import_source'),
     externalId: text('external_id'),
     /** 无单号的银行流水去重键 */
     dedupeKey: text('dedupe_key'),

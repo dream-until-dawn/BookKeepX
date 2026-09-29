@@ -9,6 +9,7 @@ import { formatCents, shiftMonth, toZonedDisplay } from '@bookkeepx/core';
 import { type ReactNode, useState } from 'react';
 import { useSearchParams } from 'react-router';
 import { ApiError } from '../../shared/api/client.ts';
+import { type LearningChoice, LearnRule } from '../../shared/category-rules/LearnRule.tsx';
 import { Badge, Button, ErrorBanner, inputClass, PageTitle } from '../../shared/ui/index.tsx';
 import { useAccounts } from '../accounts/api.ts';
 import { useCategories } from '../categories/api.ts';
@@ -75,6 +76,7 @@ function TransactionsBody({ ledgerId, timezone, canEdit, categories, accounts }:
   const [adding, setAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [learning, setLearning] = useState<LearningChoice | null>(null);
   /** 刚删除的流水：显示"撤销"提示 */
   const [lastDeleted, setLastDeleted] = useState<string | null>(null);
 
@@ -106,7 +108,15 @@ function TransactionsBody({ ledgerId, timezone, canEdit, categories, accounts }:
   const update = async (t: Transaction, v: TransactionFormValues) => {
     const patch = diffForUpdate(t, v, timezone);
     if (Object.keys(patch).length === 0) return setEditingId(null);
-    if (await run(() => m.update.mutateAsync({ id: t.id, patch }))) setEditingId(null);
+    if (await run(() => m.update.mutateAsync({ id: t.id, patch }))) {
+      setEditingId(null);
+      if (v.categoryId && v.categoryId !== t.categoryId && !t.isRefund && v.counterparty.trim())
+        setLearning({
+          categoryId: v.categoryId,
+          counterparty: v.counterparty,
+          direction: patch.direction ? v.direction : (t.originalDirection ?? v.direction),
+        });
+    }
   };
   const remove = async (t: Transaction) => {
     if (await run(() => m.remove.mutateAsync(t.id))) {
@@ -136,6 +146,15 @@ function TransactionsBody({ ledgerId, timezone, canEdit, categories, accounts }:
       </div>
 
       <ErrorBanner message={error} onClose={() => setError(null)} />
+      {learning && (
+        <LearnRule
+          key={`${learning.counterparty}:${learning.categoryId}:${learning.direction}`}
+          ledgerId={ledgerId}
+          categories={categories}
+          choice={learning}
+          onClose={() => setLearning(null)}
+        />
+      )}
       {lastDeleted && (
         <div
           role="status"

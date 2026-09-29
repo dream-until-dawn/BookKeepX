@@ -12,6 +12,7 @@ import { accountRoutes } from './modules/accounts/routes.ts';
 import { type AuthLimiters, createAuthLimiters } from './modules/auth/rate-limit.ts';
 import { authRoutes } from './modules/auth/routes.ts';
 import { categoryRoutes } from './modules/categories/routes.ts';
+import { categoryRuleRoutes } from './modules/category-rules/routes.ts';
 import { healthRoutes } from './modules/health/routes.ts';
 import { importTemplateRoutes } from './modules/import-templates/routes.ts';
 import { importRoutes } from './modules/imports/routes.ts';
@@ -53,6 +54,7 @@ export function buildApp(deps: AppDeps) {
   authRoutes(app, { db, clock, secureCookie, limiters: deps.limiters ?? createAuthLimiters(clock) });
   ledgerRoutes(app, db);
   categoryRoutes(app, db);
+  categoryRuleRoutes(app, db);
   accountRoutes(app, db);
   transactionRoutes(app, db);
   importRoutes(app, db, clock);

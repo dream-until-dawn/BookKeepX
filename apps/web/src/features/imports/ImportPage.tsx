@@ -12,6 +12,7 @@ import type { Account, Category, ImportBatch, UserTemplate, VerifyIssueDto } fro
 import { useState } from 'react';
 import { Link } from 'react-router';
 import { ApiError } from '../../shared/api/client.ts';
+import { type LearningChoice, LearnRule } from '../../shared/category-rules/LearnRule.tsx';
 import { Button, ErrorBanner, inputClass, PageTitle } from '../../shared/ui/index.tsx';
 import { useAccounts } from '../accounts/api.ts';
 import { useCategories } from '../categories/api.ts';
@@ -75,6 +76,7 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
   const [stage, setStage] = useState<Stage>({ kind: 'idle' });
   const [edits, setEdits] = useState<Map<number, RowEdit>>(new Map());
   const [error, setError] = useState<string | null>(null);
+  const [learning, setLearning] = useState<LearningChoice | null>(null);
   const [issues, setIssues] = useState<VerifyIssueDto[] | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
   const pending =
@@ -184,6 +186,15 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
       </PageTitle>
 
       <ErrorBanner message={error} onClose={() => setError(null)} />
+      {learning && (
+        <LearnRule
+          key={`${learning.counterparty}:${learning.categoryId}:${learning.direction}`}
+          ledgerId={ledgerId}
+          categories={categories}
+          choice={learning}
+          onClose={() => setLearning(null)}
+        />
+      )}
       {issues && issues.length > 0 && (
         <ul
           className="-mt-2 mb-4 list-disc rounded-lg bg-red-50 py-2 pr-3 pl-8 text-sm text-red-700"
@@ -287,7 +298,22 @@ function ImportBody({ ledgerId, timezone, canEdit, categories, accounts }: BodyP
             categories={categories}
             accounts={accounts}
             edits={edits}
-            onEdit={(index, patch) => setEdits((prev) => new Map(prev).set(index, { ...prev.get(index), ...patch }))}
+            onEdit={(index, patch) => {
+              setEdits((prev) => new Map(prev).set(index, { ...prev.get(index), ...patch }));
+              const row = activeBatch.rows?.find((r) => r.index === index);
+              if (
+                row &&
+                !row.refund &&
+                row.counterparty.trim() &&
+                patch.categoryId &&
+                patch.categoryId !== row.categoryId
+              )
+                setLearning({
+                  categoryId: patch.categoryId,
+                  counterparty: row.counterparty,
+                  direction: row.originalDirection,
+                });
+            }}
             onCommit={() => commit(activeBatch)}
             onDiscard={() => discard(activeBatch.id)}
             onChooseAccount={file ? chooseAccount(activeBatch) : undefined}

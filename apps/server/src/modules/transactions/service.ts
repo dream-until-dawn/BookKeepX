@@ -30,6 +30,7 @@ export function toTransaction(r: Row): Transaction {
   return {
     id: r.id,
     direction: r.direction,
+    originalDirection: r.originalDirection,
     amountCents: r.amountCents,
     occurredAt: r.occurredAt.toISOString(),
     timePrecision: r.timePrecision,
@@ -187,6 +188,7 @@ export async function createTransaction(db: Db, scope: LedgerScope, input: Creat
       ledgerId: scope.ledgerId,
       createdBy: scope.userId,
       direction: input.direction,
+      originalDirection: input.direction,
       amountCents: input.amount,
       occurredAt: new Date(input.occurredAt),
       categoryId: input.categoryId ?? null,
@@ -225,7 +227,7 @@ export async function updateTransaction(
   if (patch.accountId && patch.accountId !== existing.accountId) await checkAccount(db, scope, patch.accountId, true);
 
   const set: Partial<typeof transactions.$inferInsert> = {
-    ...(patch.direction !== undefined ? { direction: patch.direction } : {}),
+    ...(patch.direction !== undefined ? { direction: patch.direction, originalDirection: patch.direction } : {}),
     ...(patch.amount !== undefined ? { amountCents: patch.amount } : {}),
     ...(patch.occurredAt !== undefined
       ? { occurredAt: new Date(patch.occurredAt), timePrecision: 'second' as const }

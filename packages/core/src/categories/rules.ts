@@ -22,6 +22,10 @@ export type RuleCondition =
   | { field: 'isSelf'; op: 'equals'; value: boolean };
 
 interface RuleBase {
+  /** 同优先级用户规则的稳定顺序；系统规则无 id，沿用声明顺序。 */
+  id?: string;
+  /** 同优先级先创建的规则优先；未保存草稿排在已有规则之后。 */
+  createdAt?: string;
   /** 规则名（界面显示"由规则 xx 归类"） */
   name: string;
   enabled?: boolean;
@@ -158,7 +162,12 @@ export function matchRule(t: Classifiable, r: RuleBase): boolean {
 }
 
 const byPriority = <R extends RuleBase>(rules: R[]) =>
-  [...rules].sort((a, b) => (a.priority ?? 100) - (b.priority ?? 100));
+  [...rules].sort(
+    (a, b) =>
+      (a.priority ?? 100) - (b.priority ?? 100) ||
+      (a.createdAt ?? '').localeCompare(b.createdAt ?? '') ||
+      (a.id ?? '').localeCompare(b.id ?? ''),
+  );
 
 /**
  * 对一笔流水自动分类
