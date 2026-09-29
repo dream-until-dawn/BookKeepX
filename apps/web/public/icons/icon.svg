@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <title>BookKeepX 记账</title>
+  <rect width="512" height="512" rx="112" fill="#2563eb"/>
+  <rect x="130" y="112" width="252" height="288" rx="32" fill="#fff"/>
+  <path d="M174 112v288" stroke="#bfdbfe" stroke-width="12"/>
+  <path d="M214 184h116M214 230h88" stroke="#2563eb" stroke-width="20" stroke-linecap="round"/>
+  <path d="m221 311 35 35 72-78" fill="none" stroke="#059669" stroke-width="24" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
