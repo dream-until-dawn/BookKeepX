@@ -26,6 +26,10 @@ export const routes: RouteObject[] = [
     children: [
       { path: '/', element: <HomePage /> },
       { path: '/transactions', element: <TransactionsPage /> },
+      {
+        path: '/stats',
+        lazy: async () => ({ Component: (await import('../features/stats/StatsPage.tsx')).StatsPage }),
+      },
       { path: '/imports', element: <ImportPage /> },
       { path: '/categories', element: <CategoriesPage /> },
       { path: '/rules', element: <RulesPage /> },

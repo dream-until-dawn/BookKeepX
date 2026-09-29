@@ -80,6 +80,7 @@ export {
 } from './imports.ts';
 export { type Ledger, type LedgerRoleValue, ledgerRoleSchema, ledgerSchema } from './ledgers.ts';
 export { centsSchema, positiveCentsSchema, yuanInputSchema } from './money.ts';
+export * from './stats.ts';
 export {
   type CreateTransactionRequest,
   createTransactionRequestSchema,

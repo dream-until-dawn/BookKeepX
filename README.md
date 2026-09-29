@@ -12,6 +12,7 @@
 pnpm install          # 安装依赖
 cp .env.example .env  # 首次：复制环境变量
 pnpm db:up            # 启动开发数据库（PostgreSQL 16，端口 54320；同时创建测试库）
+pnpm db:migrate       # 创建或升级开发库表结构
 pnpm dev              # 同时启动服务端（3000）和前端（5173），打开 http://localhost:5173
 ```
 
@@ -42,6 +43,8 @@ pnpm test         # 全部测试（服务端测试需要 pnpm db:up）
 - [鉴权设计](docs/auth.md)
 - [接口约定](docs/api.md)
 - [账单导入设计](docs/import.md)
+- [分类规则](docs/category-rules.md)
+- [统计口径与展示](docs/stats.md)
 - 探针结论
   - [P0-1 账单解析](docs/probes/p0-1-import-parsing.md)
   - [P0-1b/1c 解析模板体系与统一分类](docs/probes/p0-1bc-templates-and-categories.md)
