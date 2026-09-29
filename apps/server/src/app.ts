@@ -33,12 +33,17 @@ export interface AppDeps {
   clock?: () => Date;
   /** Cookie 是否加 Secure（生产环境 HTTPS 下为 true） */
   secureCookie?: boolean;
+  /** 部署入口覆盖转发头，API 不发布宿主端口时可设为 1。 */
+  trustProxyHops?: number;
   /** 限流器；不传则按 docs/auth.md §5 的默认规则创建 */
   limiters?: AuthLimiters;
 }
 
 export function buildApp(deps: AppDeps) {
-  const app = Fastify({ logger: deps.logger ?? false });
+  const app = Fastify({
+    logger: deps.logger ?? false,
+    trustProxy: (_address, hop) => hop < (deps.trustProxyHops ?? 0),
+  });
   const clock = deps.clock ?? (() => new Date());
   const secureCookie = deps.secureCookie ?? false;
   const db = deps.database.db;

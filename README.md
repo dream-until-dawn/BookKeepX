@@ -28,6 +28,8 @@ pnpm test         # 全部测试（服务端测试需要 pnpm db:up）
 
 ## 文档
 
+首次本机 Docker 部署：见[部署、备份与恢复](docs/deployment.md)。开发环境和部署环境使用独立数据库；部署入口为 http://127.0.0.1:8080。
+
 - [架构设计](docs/architecture.md)
 - [分期路线图](docs/roadmap.md)
 - [开发约定](docs/conventions.md)
@@ -46,6 +48,7 @@ pnpm test         # 全部测试（服务端测试需要 pnpm db:up）
 - [分类规则](docs/category-rules.md)
 - [统计口径与展示](docs/stats.md)
 - [PWA 安装、更新与移动端](docs/pwa.md)
+- [部署、备份与恢复](docs/deployment.md)
 - 探针结论
   - [P0-1 账单解析](docs/probes/p0-1-import-parsing.md)
   - [P0-1b/1c 解析模板体系与统一分类](docs/probes/p0-1bc-templates-and-categories.md)

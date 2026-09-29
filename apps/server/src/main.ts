@@ -8,7 +8,12 @@ import { createDatabase } from './db/client.ts';
 const env = loadEnv();
 const database = createDatabase(env.DATABASE_URL);
 // 生产环境（HTTPS）下 Cookie 必须带 Secure
-const app = buildApp({ database, logger: env.NODE_ENV !== 'test', secureCookie: env.NODE_ENV === 'production' });
+const app = buildApp({
+  database,
+  logger: env.NODE_ENV !== 'test',
+  secureCookie: env.COOKIE_SECURE === undefined ? env.NODE_ENV === 'production' : env.COOKIE_SECURE === 'true',
+  trustProxyHops: env.TRUST_PROXY_HOPS,
+});
 
 async function shutdown(signal: string) {
   app.log.info(`收到 ${signal}，正在关闭…`);

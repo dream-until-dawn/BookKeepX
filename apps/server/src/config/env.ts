@@ -10,6 +10,10 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().min(1).max(65535).default(3000),
   HOST: z.string().default('0.0.0.0'),
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
+  /** 仅本机 HTTP 部署显式关闭；生产默认保持 Secure。 */
+  COOKIE_SECURE: z.enum(['true', 'false']).optional(),
+  /** 只信任受控代理的最近一跳，默认不信任转发头。 */
+  TRUST_PROXY_HOPS: z.coerce.number().int().min(0).max(1).default(0),
 });
 
 export type Env = z.infer<typeof envSchema>;

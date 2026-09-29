@@ -10,6 +10,21 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
+  deployment:
+    name: 独立 Docker 部署与备份恢复
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version-file: .nvmrc }
+      - run: node docker/init.mjs
+      - run: docker compose --env-file docker/.env -f docker/compose.yaml up -d --build --wait
+      - run: node docker/smoke.mjs
+      - if: failure()
+        run: docker compose --env-file docker/.env -f docker/compose.yaml logs --tail 100
+      - if: always()
+        run: docker compose --env-file docker/.env -f docker/compose.yaml down
+
   check:
     name: 格式与代码检查（Biome）
     runs-on: ubuntu-latest
