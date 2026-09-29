@@ -10,6 +10,7 @@
     "typecheck": "tsc -p tsconfig.json"
   },
   "dependencies": {
+    "@bookkeepx/contracts": "workspace:*",
     "@bookkeepx/core": "workspace:*",
     "exceljs": "^4.4.0",
     "iconv-lite": "^0.7.3",

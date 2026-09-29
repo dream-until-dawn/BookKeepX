@@ -3,6 +3,8 @@
  *
  *   文件类型不符 → 淘汰
  *   指纹关键词命中率 × 0.3 ＋ 找到表头 × 0.4 ＋ 试解析前 20 行成功率 × 0.3 ＋ 文件名命中 0.05（封顶 1）
+ *   没有配置标题关键词、且文件表头与模板必需列完全一致的模板（多为用户模板）：
+ *     关键词项不参与，(表头 × 0.4 ＋ 试解析 × 0.3) / 0.7（import.md §9.4）
  *   ≥ 0.9 且领先第二名 ≥ 0.2 → 自动选用；≥ 0.4 → 候选；否则无候选
  */
 import { parseTable } from './parse.ts';
@@ -38,6 +40,12 @@ function docHeadText(doc: RawDoc): string {
     .join('\n');
 }
 
+/** 表头的非空列名集合与必需列完全相同 */
+function sameColumns(header: string[], required: string[]): boolean {
+  const cols = new Set(header.filter((h) => h !== ''));
+  return cols.size === required.length && required.every((r) => cols.has(r));
+}
+
 export function scoreTemplate(doc: RawDoc, fileName: string, t: ImportTemplate): Candidate | null {
   if (doc.fileType !== t.fileType) return null;
   let table: ReturnType<typeof extractTable>;
@@ -57,7 +65,11 @@ export function scoreTemplate(doc: RawDoc, fileName: string, t: ImportTemplate):
     if (sample > 0) trial = (sample - parseTable(table, t, sample).errors.length) / sample;
   }
   const byName = t.fingerprint.fileNameKeywords.some((k) => fileName.includes(k)) ? 1 : 0;
-  const score = Math.min(1, keywords * 0.3 + header * 0.4 + trial * 0.3 + byName * 0.05);
+  // 表头完全一致才放大：只是"包含必需列"的宽泛模板（如只要求"时间、金额"）不能与内置模板打成平手
+  const exactHeader = !!table && sameColumns(table.header, t.header.required);
+  const base =
+    kws.length === 0 && exactHeader ? (header * 0.4 + trial * 0.3) / 0.7 : keywords * 0.3 + header * 0.4 + trial * 0.3;
+  const score = Math.min(1, base + byName * 0.05);
   return { templateId: t.id, templateName: t.name, score: Math.round(score * 1000) / 1000 };
 }
 

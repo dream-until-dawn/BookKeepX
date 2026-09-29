@@ -18,6 +18,17 @@ export type { Candidate, DetectDecision } from './detect.ts';
 export type { Direction, ImportRecord, ParsedFile, VerifyIssue } from './parse.ts';
 export { type FileType, sniffFileType } from './reader.ts';
 export { type ImportTemplate, loadTemplate, templateSchema } from './template.ts';
+export {
+  compileUserTemplate,
+  INSPECT_ROWS,
+  type InspectResult,
+  inspectFile,
+  suggestHeaderRow,
+  type TrialResult,
+  trialParse,
+  type UserTemplateMeta,
+  userTemplateSource,
+} from './user-template.ts';
 
 /** 内置模板；加载时即做严格校验，模板写错会在启动时直接报错 */
 export const BUILTIN_TEMPLATES: ImportTemplate[] = [wechatXlsx, alipayCsv, cmbPdf].map((json) => loadTemplate(json));
