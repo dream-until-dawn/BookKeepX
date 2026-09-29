@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+.git
+.claude
+.codex
+.agents
+samples
+probes
+**/.env
+**/.env.*
+**/coverage
+**/*.tsbuildinfo
+docker/backups
+**/test
+docs

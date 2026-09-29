@@ -1,0 +1,55 @@
+name: bookkeepx-local
+services:
+  db:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: bookkeepx
+      POSTGRES_USER: bookkeepx
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?请先运行 node docker/init.mjs}
+    volumes: [data:/var/lib/postgresql/data]
+    healthcheck:
+      test: [CMD-SHELL, "pg_isready -U bookkeepx -d bookkeepx"]
+      interval: 3s
+      timeout: 3s
+      retries: 30
+    restart: unless-stopped
+  migrate:
+    image: bookkeepx-server:${BOOKKEEPX_VERSION:-local}
+    build: { context: .., dockerfile: docker/Dockerfile, target: server }
+    environment: &server-env
+      DATABASE_URL: postgres://bookkeepx:${POSTGRES_PASSWORD}@db:5432/bookkeepx
+      NODE_ENV: production
+      COOKIE_SECURE: "false"
+      TRUST_PROXY_HOPS: "1"
+    command: [node, node_modules/tsx/dist/cli.mjs, src/db/migrate-cli.ts]
+    depends_on:
+      db: { condition: service_healthy }
+    restart: "no"
+  api:
+    image: bookkeepx-server:${BOOKKEEPX_VERSION:-local}
+    environment: *server-env
+    depends_on:
+      migrate: { condition: service_completed_successfully }
+    healthcheck:
+      test: [CMD, node, -e, "fetch('http://127.0.0.1:3000/api/health').then(r=>{if(!r.ok)process.exit(1)}).catch(()=>process.exit(1))"]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    restart: unless-stopped
+    init: true
+  web:
+    image: bookkeepx-web:${BOOKKEEPX_VERSION:-local}
+    build: { context: .., dockerfile: docker/Dockerfile, target: web }
+    ports: ["127.0.0.1:${WEB_PORT:-8080}:80"]
+    volumes: [assets:/usr/share/nginx/html/assets]
+    depends_on:
+      api: { condition: service_healthy }
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1/api/health]
+      interval: 5s
+      timeout: 4s
+      retries: 20
+    restart: unless-stopped
+volumes:
+  data:
+  assets:
