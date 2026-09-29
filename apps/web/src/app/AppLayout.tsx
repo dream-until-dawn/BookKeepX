@@ -9,6 +9,7 @@ import { logout, ME_QUERY_KEY, useCurrentUser } from '../features/auth/api.ts';
 const NAV = [
   { to: '/', label: '首页' },
   { to: '/transactions', label: '流水' },
+  { to: '/stats', label: '统计' },
   { to: '/imports', label: '导入' },
   { to: '/categories', label: '分类' },
   { to: '/rules', label: '规则' },
@@ -32,23 +33,23 @@ export function AppLayout() {
   return (
     <div className="min-h-screen bg-gray-50">
       <header className="border-b border-gray-200 bg-white">
-        <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3">
-          <nav className="flex items-center gap-4">
-            <span className="font-semibold">BookKeepX 记账</span>
+        <div className="mx-auto flex max-w-5xl flex-wrap items-center justify-between gap-3 px-4 py-3">
+          <nav className="flex flex-wrap items-center gap-x-4 gap-y-2">
+            <span className="font-semibold whitespace-nowrap">BookKeepX 记账</span>
             {NAV.map((item) => (
               <NavLink
                 key={item.to}
                 to={item.to}
                 end
                 className={({ isActive }) =>
-                  `text-sm ${isActive ? 'font-medium text-blue-600' : 'text-gray-600 hover:text-gray-900'}`
+                  `text-sm whitespace-nowrap ${isActive ? 'font-medium text-blue-600' : 'text-gray-600 hover:text-gray-900'}`
                 }
               >
                 {item.label}
               </NavLink>
             ))}
           </nav>
-          <div className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-3 text-sm whitespace-nowrap">
             <span className="text-gray-600" data-testid="current-user">
               {user?.displayName}
             </span>

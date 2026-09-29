@@ -14,6 +14,7 @@
     "@bookkeepx/contracts": "workspace:*",
     "@bookkeepx/core": "workspace:*",
     "@tanstack/react-query": "^5.103.2",
+    "echarts": "^6.1.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
     "react-router": "^8.4.0",

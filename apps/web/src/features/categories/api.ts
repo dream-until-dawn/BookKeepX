@@ -15,10 +15,10 @@ export function useCategories(ledgerId: string) {
   return useQuery({ queryKey: categoriesKey(ledgerId), queryFn: () => apiGet(base(ledgerId), categoryListSchema) });
 }
 
-/** 分类的增、改、删；成功后刷新分类列表 */
+/** 分类的增、改、删；名称变化也影响统计，刷新账本下的全部缓存。 */
 export function useCategoryMutations(ledgerId: string) {
   const queryClient = useQueryClient();
-  const onSuccess = () => queryClient.invalidateQueries({ queryKey: categoriesKey(ledgerId) });
+  const onSuccess = () => queryClient.invalidateQueries({ queryKey: ['ledger', ledgerId] });
   return {
     create: useMutation({
       mutationFn: (body: CreateCategoryRequest) => apiSend('POST', base(ledgerId), body, categorySchema),

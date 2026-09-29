@@ -1,4 +1,4 @@
-/** 首页：本月收支概览 + 记账入口（统计图表在 P1-9 加入） */
+/** 首页：本月收支概览与记账、统计入口。 */
 import { formatCents, toZonedDisplay } from '@bookkeepx/core';
 import { Link } from 'react-router';
 import { useCurrentUser } from '../auth/api.ts';
@@ -31,6 +31,9 @@ function MonthOverview({ ledgerId }: { ledgerId: string }) {
     <section className="rounded-lg bg-white p-4 ring-1 ring-gray-200" data-testid="month-overview">
       <div className="mb-3 flex items-center justify-between">
         <h2 className="font-medium">本月（{month ?? '…'}）</h2>
+        <Link to={month ? `/stats?month=${month}` : '/stats'} className="text-sm text-blue-600">
+          查看统计
+        </Link>
         <Link to="/transactions" className="rounded-md bg-blue-600 px-3 py-1 text-sm text-white hover:bg-blue-700">
           去记账
         </Link>

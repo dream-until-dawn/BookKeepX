@@ -18,6 +18,7 @@ import { importTemplateRoutes } from './modules/import-templates/routes.ts';
 import { importRoutes } from './modules/imports/routes.ts';
 import { MAX_FILE_BYTES } from './modules/imports/service.ts';
 import { ledgerRoutes } from './modules/ledgers/routes.ts';
+import { statsRoutes } from './modules/stats/routes.ts';
 import { transactionRoutes } from './modules/transactions/routes.ts';
 import { registerAuth } from './plugins/auth.ts';
 import { registerCsrfGuard } from './plugins/csrf.ts';
@@ -57,6 +58,7 @@ export function buildApp(deps: AppDeps) {
   categoryRuleRoutes(app, db);
   accountRoutes(app, db);
   transactionRoutes(app, db);
+  statsRoutes(app, db);
   importRoutes(app, db, clock);
   importTemplateRoutes(app, db, clock);
   return app;
